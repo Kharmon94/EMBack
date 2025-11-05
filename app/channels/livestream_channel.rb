@@ -128,13 +128,5 @@ class LivestreamChannel < ApplicationCable::Channel
       }
     )
   end
-  
-  private
-  
-  def current_user
-    # TODO: Implement user authentication for ActionCable
-    # For now, return nil
-    nil
-  end
 end
 
