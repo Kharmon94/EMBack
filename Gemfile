@@ -41,7 +41,7 @@ gem "devise-jwt", "~> 0.12"
 gem "cancancan", "~> 3.5"
 
 # Background jobs
-gem "sidekiq", "~> 7.0"
+gem "sidekiq", "~> 8.0"
 gem "redis", "~> 5.0"
 
 # HTTP client for Solana RPC
