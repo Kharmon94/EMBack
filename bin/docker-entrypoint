@@ -9,6 +9,14 @@ fi
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
+  
+  # Seed database if it's empty (check if users table is empty)
+  if [ "$(./bin/rails runner 'puts User.count')" == "0" ]; then
+    echo "Database is empty, running seed..."
+    ./bin/rails db:seed
+  else
+    echo "Database already has data, skipping seed."
+  fi
 fi
 
 exec "${@}"
