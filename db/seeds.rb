@@ -408,6 +408,9 @@ artists.each_with_index do |artist, index|
       name: "#{artist.name} #{pass[:name]}",
       description: "Get exclusive perks from #{artist.name}!",
       price: pass[:price],
+      max_supply: pass_index == 1 ? 100 : 1000, # VIP limited to 100, Basic 1000
+      dividend_percentage: pass_index == 1 ? 10.0 : 5.0, # VIP gets higher dividends
+      distribution_type: :monthly,
       token_gate_amount: pass_index == 1 ? 1000 : 0,
       perks: pass[:perks],
       active: true
@@ -416,6 +419,211 @@ artists.each_with_index do |artist, index|
 end
 
 puts "✅ Created #{FanPass.count} fan passes"
+
+# ============================================================
+# VIDEOS
+# ============================================================
+puts "\n🎬 Creating videos..."
+
+video_count = 0
+
+artists.each_with_index do |artist, index|
+  # 2-4 videos per artist
+  rand(2..4).times do |video_index|
+    video_titles = [
+      "Official Music Video",
+      "Behind the Scenes",
+      "Live Performance",
+      "Acoustic Session",
+      "Tour Diary",
+      "Studio Footage"
+    ]
+    
+    # Mix of access tiers
+    access_tier = case video_index
+                  when 0
+                    0 # free - first video always free for promotion
+                  when 1
+                    [0, 1].sample # free or preview_only
+                  when 2
+                    [1, 2].sample # preview_only or nft_required
+                  else
+                    [2, 3].sample # nft_required or paid
+                  end
+    
+    price = case access_tier
+            when 1 # preview_only
+              [0.5, 1.0, 2.0].sample
+            when 3 # paid
+              [1.0, 2.5, 5.0].sample
+            else
+              0
+            end
+    
+    published = [true, true, true, false].sample # Most published, some drafts
+    
+    video = Video.create!(
+      artist: artist,
+      title: "#{artist.name} - #{video_titles[video_index % video_titles.length]}",
+      description: "An amazing video from #{artist.name}. #{['Subscribe for more content!', 'Part of the latest album release.', 'Exclusive content for fans.'].sample}",
+      duration: rand(180..600), # 3-10 minutes
+      video_url: "ipfs://Qm#{SecureRandom.hex(23)}", # Mock IPFS URL
+      thumbnail_url: "https://picsum.photos/seed/video#{artist.id}#{video_index}/1280/720",
+      price: price,
+      access_tier: access_tier,
+      preview_duration: access_tier == 1 ? [30, 60, 90].sample : 60,
+      views_count: published ? rand(100..10000) : 0,
+      likes_count: published ? rand(10..500) : 0,
+      published: published,
+      published_at: published ? rand(1..60).days.ago : nil
+    )
+    
+    video_count += 1
+  end
+end
+
+puts "✅ Created #{video_count} videos"
+
+# ============================================================
+# VIDEO VIEWS
+# ============================================================
+puts "\n👁️  Creating video views..."
+
+video_view_count = 0
+
+Video.published.each do |video|
+  # 50-300 views per published video
+  rand(50..300).times do
+    user = fan_users.sample
+    watched_duration = rand(10..video.duration)
+    completed = watched_duration > (video.duration * 0.8)
+    nft_holder = video.artist.fan_passes.joins(:fan_pass_nfts).exists?(fan_pass_nfts: { user: user, status: :active })
+    
+    VideoView.create!(
+      video: video,
+      user: user,
+      watched_duration: watched_duration,
+      completed: completed,
+      nft_holder: nft_holder,
+      access_tier: nft_holder ? 'premium' : (video.free? ? 'free' : 'preview'),
+      created_at: rand(1..30).days.ago
+    )
+    
+    video_view_count += 1
+  end
+end
+
+puts "✅ Created #{video_view_count} video views"
+
+# ============================================================
+# MINIS (SHORT-FORM CONTENT)
+# ============================================================
+puts "\n🎬 Creating minis..."
+
+mini_count = 0
+
+artists.each_with_index do |artist, index|
+  # 5-8 minis per artist
+  rand(5..8).times do |mini_index|
+    mini_titles = [
+      "Quick Jam Session",
+      "Freestyle Flow",
+      "Studio Vibes",
+      "Morning Melody",
+      "Beat Drop",
+      "Snippet Preview",
+      "Behind the Music",
+      "30 Second Banger",
+      "Vocal Warmup",
+      "Producer Tips"
+    ]
+    
+    # Access tier mix (more free/preview for viral potential)
+    access_tier = case mini_index
+                  when 0..2
+                    0 # free - first 3 always free for virality
+                  when 3
+                    [0, 1].sample # free or preview
+                  when 4
+                    [1, 2].sample # preview or nft
+                  else
+                    [2, 3].sample # nft or paid
+                  end
+    
+    price = case access_tier
+            when 1 # preview_only
+              [0.25, 0.5, 1.0].sample
+            when 3 # paid
+              [0.5, 1.0, 1.5].sample
+            else
+              0
+            end
+    
+    published = [true, true, true, true, false].sample # 80% published
+    
+    # Durations between 15-120 seconds (mostly 30-60 seconds)
+    duration = [
+      rand(15..30),   # short
+      rand(30..60),   # ideal
+      rand(30..60),   # ideal (weighted)
+      rand(60..90),   # longer
+      rand(90..120)   # max length
+    ].sample
+    
+    mini = Mini.create!(
+      artist: artist,
+      title: "#{artist.name} - #{mini_titles[mini_index % mini_titles.length]}",
+      description: ["🔥", "New sound!", "What do you think?", "Vibes only", "LMK your thoughts 👇"].sample,
+      duration: duration,
+      video_url: "ipfs://Qm#{SecureRandom.hex(23)}", # Mock IPFS URL
+      thumbnail_url: "https://picsum.photos/seed/mini#{artist.id}#{mini_index}/720/1280", # 9:16 vertical
+      price: price,
+      access_tier: access_tier,
+      preview_duration: access_tier == 1 ? [15, 30].sample : 30,
+      aspect_ratio: '9:16',
+      views_count: published ? rand(500..50000) : 0, # Higher views for viral potential
+      likes_count: published ? rand(50..5000) : 0,
+      shares_count: published ? rand(10..500) : 0,
+      published: published,
+      published_at: published ? rand(1..30).days.ago : nil
+    )
+    
+    mini_count += 1
+  end
+end
+
+puts "✅ Created #{mini_count} minis"
+
+# ============================================================
+# MINI VIEWS
+# ============================================================
+puts "\n👁️  Creating mini views..."
+
+mini_view_count = 0
+
+Mini.published.each do |mini|
+  # Each mini gets 100-1000 views (viral potential)
+  rand(100..1000).times do
+    user = fan_users.sample
+    watched_duration = rand(5..mini.duration) # Some people watch full, some scroll
+    completed = watched_duration > (mini.duration * 0.8)
+    nft_holder = mini.artist.fan_passes.joins(:fan_pass_nfts).exists?(fan_pass_nfts: { user: user, status: :active })
+    
+    MiniView.create!(
+      mini: mini,
+      user: user,
+      watched_duration: watched_duration,
+      completed: completed,
+      nft_holder: nft_holder,
+      access_tier: nft_holder ? 'premium' : (mini.free? ? 'free' : 'preview'),
+      created_at: rand(1..30).days.ago
+    )
+    
+    mini_view_count += 1
+  end
+end
+
+puts "✅ Created #{mini_view_count} mini views"
 
 # ============================================================
 # ORDERS
@@ -674,6 +882,10 @@ summary = {
   "Artist Tokens" => ArtistToken.count,
   "Albums" => Album.count,
   "Tracks" => Track.count,
+  "Videos" => Video.count,
+  "Video Views" => VideoView.count,
+  "Minis" => Mini.count,
+  "Mini Views" => MiniView.count,
   "Streams" => Stream.count,
   "Trades" => Trade.count,
   "Events" => Event.count,

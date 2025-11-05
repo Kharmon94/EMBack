@@ -74,6 +74,40 @@ Rails.application.routes.draw do
         end
       end
       
+      # Videos
+      resources :videos do
+        resources :comments, only: [:index, :create], defaults: { commentable_type: 'Video' }
+        member do
+          get :watch
+          post :log_view
+          post :purchase
+          post :publish
+          post :like, to: 'likes#create', defaults: { likeable_type: 'Video' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Video' }
+          get :likes, to: 'likes#index', defaults: { likeable_type: 'Video' }
+        end
+      end
+      
+      # Minis (short-form content)
+      resources :minis do
+        resources :comments, only: [:index, :create], defaults: { commentable_type: 'Mini' }
+        collection do
+          get :feed
+          get :trending
+          get :following
+        end
+        member do
+          get :watch
+          post :log_view
+          post :purchase
+          post :publish
+          post :share
+          post :like, to: 'likes#create', defaults: { likeable_type: 'Mini' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Mini' }
+          get :likes, to: 'likes#index', defaults: { likeable_type: 'Mini' }
+        end
+      end
+      
       # Playlists
       resources :playlists do
         member do

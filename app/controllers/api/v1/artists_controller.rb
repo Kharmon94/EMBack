@@ -71,10 +71,15 @@ module Api
             monthly_listeners: @artist.albums.joins(:tracks).joins('INNER JOIN streams ON streams.track_id = tracks.id').where('streams.created_at > ?', 30.days.ago).select('DISTINCT streams.user_id').count,
             total_albums: @artist.albums.count,
             total_tracks: @artist.albums.joins(:tracks).count,
+            total_videos: @artist.videos.published.count,
+            total_video_views: @artist.videos.sum(:views_count),
+            total_minis: @artist.minis.published.count,
+            total_mini_views: @artist.minis.sum(:views_count),
+            total_mini_shares: @artist.minis.sum(:shares_count),
             total_events: @artist.events.count,
             active_fan_passes: @artist.fan_passes.where(active: true).count,
-            total_comments: Comment.where(commentable: @artist.albums).or(Comment.where(commentable: @artist.events)).or(Comment.where(commentable: @artist.livestreams)).count,
-            total_likes: Like.where(likeable: @artist.albums).or(Like.where(likeable: Track.joins(:album).where(albums: { artist_id: @artist.id }))).count
+            total_comments: Comment.where(commentable: @artist.albums).or(Comment.where(commentable: @artist.events)).or(Comment.where(commentable: @artist.livestreams)).or(Comment.where(commentable: @artist.videos)).or(Comment.where(commentable: @artist.minis)).count,
+            total_likes: Like.where(likeable: @artist.albums).or(Like.where(likeable: Track.joins(:album).where(albums: { artist_id: @artist.id }))).or(Like.where(likeable: @artist.videos)).or(Like.where(likeable: @artist.minis)).count
           },
           token: @artist.artist_token ? {
             name: @artist.artist_token.name,
@@ -127,6 +132,32 @@ module Api
               price: merch.price,
               image_url: merch.image_url,
               stock: merch.stock
+            }
+          },
+          videos: @artist.videos.published.order(published_at: :desc).limit(6).map { |video|
+            {
+              id: video.id,
+              title: video.title,
+              duration: video.duration,
+              thumbnail_url: video.thumbnail_url,
+              views_count: video.views_count,
+              likes_count: video.likes_count,
+              access_tier: video.access_tier,
+              price: video.price
+            }
+          },
+          minis: @artist.minis.published.order(published_at: :desc).limit(12).map { |mini|
+            {
+              id: mini.id,
+              title: mini.title,
+              duration: mini.duration,
+              thumbnail_url: mini.thumbnail_url,
+              views_count: mini.views_count,
+              likes_count: mini.likes_count,
+              shares_count: mini.shares_count,
+              access_tier: mini.access_tier,
+              price: mini.price,
+              engagement_rate: mini.engagement_rate
             }
           },
           fan_passes: @artist.fan_passes.where(active: true).map { |pass|

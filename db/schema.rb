@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_05_000008) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -259,6 +259,51 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000008) do
     t.index ["artist_id"], name: "index_merch_items_on_artist_id"
   end
 
+  create_table "mini_views", force: :cascade do |t|
+    t.bigint "mini_id", null: false
+    t.bigint "user_id"
+    t.integer "watched_duration"
+    t.boolean "completed", default: false
+    t.boolean "nft_holder", default: false
+    t.string "access_tier"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["completed"], name: "index_mini_views_on_completed"
+    t.index ["created_at"], name: "index_mini_views_on_created_at"
+    t.index ["mini_id", "user_id"], name: "index_mini_views_on_mini_id_and_user_id"
+    t.index ["mini_id"], name: "index_mini_views_on_mini_id"
+    t.index ["nft_holder"], name: "index_mini_views_on_nft_holder"
+    t.index ["user_id"], name: "index_mini_views_on_user_id"
+  end
+
+  create_table "minis", force: :cascade do |t|
+    t.bigint "artist_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.integer "duration", null: false
+    t.string "video_url"
+    t.string "thumbnail_url"
+    t.decimal "price", precision: 10, scale: 2, default: "0.0"
+    t.integer "access_tier", default: 0, null: false
+    t.integer "preview_duration", default: 30
+    t.integer "views_count", default: 0, null: false
+    t.integer "likes_count", default: 0, null: false
+    t.integer "shares_count", default: 0, null: false
+    t.string "aspect_ratio", default: "9:16"
+    t.boolean "published", default: false, null: false
+    t.datetime "published_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["access_tier"], name: "index_minis_on_access_tier"
+    t.index ["artist_id", "published"], name: "index_minis_on_artist_id_and_published"
+    t.index ["artist_id"], name: "index_minis_on_artist_id"
+    t.index ["likes_count"], name: "index_minis_on_likes_count"
+    t.index ["published_at"], name: "index_minis_on_published_at"
+    t.index ["shares_count"], name: "index_minis_on_shares_count"
+    t.index ["views_count"], name: "index_minis_on_views_count"
+    t.check_constraint "duration > 0 AND duration <= 120", name: "mini_duration_limit"
+  end
+
   create_table "notifications", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "notification_type", null: false
@@ -496,6 +541,47 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000008) do
     t.index ["wallet_address"], name: "index_users_on_wallet_address", unique: true
   end
 
+  create_table "video_views", force: :cascade do |t|
+    t.bigint "video_id", null: false
+    t.bigint "user_id"
+    t.integer "watched_duration"
+    t.boolean "completed", default: false
+    t.boolean "nft_holder", default: false
+    t.string "access_tier"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["completed"], name: "index_video_views_on_completed"
+    t.index ["created_at"], name: "index_video_views_on_created_at"
+    t.index ["nft_holder"], name: "index_video_views_on_nft_holder"
+    t.index ["user_id"], name: "index_video_views_on_user_id"
+    t.index ["video_id", "user_id"], name: "index_video_views_on_video_id_and_user_id"
+    t.index ["video_id"], name: "index_video_views_on_video_id"
+  end
+
+  create_table "videos", force: :cascade do |t|
+    t.bigint "artist_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.integer "duration"
+    t.string "video_url"
+    t.string "thumbnail_url"
+    t.decimal "price", precision: 10, scale: 2, default: "0.0"
+    t.integer "access_tier", default: 0, null: false
+    t.integer "preview_duration", default: 60
+    t.integer "views_count", default: 0, null: false
+    t.integer "likes_count", default: 0, null: false
+    t.boolean "published", default: false, null: false
+    t.datetime "published_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["access_tier"], name: "index_videos_on_access_tier"
+    t.index ["artist_id", "published"], name: "index_videos_on_artist_id_and_published"
+    t.index ["artist_id"], name: "index_videos_on_artist_id"
+    t.index ["likes_count"], name: "index_videos_on_likes_count"
+    t.index ["published_at"], name: "index_videos_on_published_at"
+    t.index ["views_count"], name: "index_videos_on_views_count"
+  end
+
   add_foreign_key "airdrop_claims", "airdrops"
   add_foreign_key "airdrop_claims", "users"
   add_foreign_key "airdrops", "artist_tokens"
@@ -515,6 +601,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000008) do
   add_foreign_key "liquidity_pools", "artist_tokens"
   add_foreign_key "livestreams", "artists"
   add_foreign_key "merch_items", "artists"
+  add_foreign_key "mini_views", "minis"
+  add_foreign_key "mini_views", "users"
+  add_foreign_key "minis", "artists"
   add_foreign_key "notifications", "users"
   add_foreign_key "order_items", "orders"
   add_foreign_key "orders", "users"
@@ -534,4 +623,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000008) do
   add_foreign_key "tracks", "albums"
   add_foreign_key "trades", "artist_tokens"
   add_foreign_key "trades", "users"
+  add_foreign_key "video_views", "users"
+  add_foreign_key "video_views", "videos"
+  add_foreign_key "videos", "artists"
 end

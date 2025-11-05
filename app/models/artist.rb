@@ -7,6 +7,8 @@ class Artist < ApplicationRecord
   has_one :artist_token, dependent: :destroy
   has_many :albums, dependent: :destroy
   has_many :tracks, through: :albums
+  has_many :videos, dependent: :destroy
+  has_many :minis, dependent: :destroy
   has_many :events, dependent: :destroy
   has_many :livestreams, dependent: :destroy
   has_many :merch_items, dependent: :destroy

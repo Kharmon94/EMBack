@@ -13,6 +13,8 @@ class Ability
       can :manage, ArtistToken, artist: { user_id: user.id }
       can :manage, Album, artist: { user_id: user.id }
       can :manage, Track, album: { artist: { user_id: user.id } }
+      can :manage, Video, artist: { user_id: user.id }
+      can :manage, Mini, artist: { user_id: user.id }
       can :manage, Event, artist: { user_id: user.id }
       can :manage, TicketTier, event: { artist: { user_id: user.id } }
       can :manage, Livestream, artist: { user_id: user.id }
@@ -56,6 +58,14 @@ class Ability
     can :create, Stream
     can :read, Stream, user_id: user.id
     
+    # Can watch videos
+    can :create, VideoView
+    can :read, VideoView, user_id: user.id
+    
+    # Can watch minis
+    can :create, MiniView
+    can :read, MiniView, user_id: user.id
+    
     # Can participate in livestreams
     can :create, StreamMessage
     can :read, StreamMessage
@@ -78,6 +88,8 @@ class Ability
     can :read, ArtistToken
     can :read, Album
     can :read, Track
+    can :read, Video
+    can :read, Mini
     can :read, Event
     can :read, TicketTier
     can :read, Livestream
@@ -93,6 +105,8 @@ class Ability
     can :read, Artist
     can :read, Album
     can :read, Track
+    can :read, Video
+    can :read, Mini
     can :read, Event
     can :read, TicketTier
     can :read, MerchItem
