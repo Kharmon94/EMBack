@@ -1,0 +1,15 @@
+---
+:concurrency: 5
+:queues:
+  - default
+  - graduation_checker
+  - revenue_distribution
+  - fingerprint_audio
+  - solana_transactions
+
+development:
+  :concurrency: 2
+
+production:
+  :concurrency: 10
+

@@ -1,0 +1,2 @@
+class PlatformMetric < ApplicationRecord
+end
