@@ -4,6 +4,7 @@ module Api
       skip_before_action :authenticate_user!, only: [:index, :show]
       load_and_authorize_resource except: [:index, :show]
       skip_authorization_check only: [:index, :show]
+      before_action :set_merch_item, only: [:show, :update, :destroy]
       
       # GET /api/v1/merch
       def index
@@ -93,6 +94,10 @@ module Api
           created_at: item.created_at,
           updated_at: item.updated_at
         )
+      end
+      
+      def set_merch_item
+        @merch_item = MerchItem.find(params[:id])
       end
     end
   end

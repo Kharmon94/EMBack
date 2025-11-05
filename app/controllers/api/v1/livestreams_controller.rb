@@ -4,6 +4,7 @@ module Api
       skip_before_action :authenticate_user!, only: [:index, :show, :messages, :status]
       load_and_authorize_resource except: [:start, :stop, :status, :index, :show, :messages]
       skip_authorization_check only: [:index, :show, :messages, :status]
+      before_action :set_livestream, only: [:show, :start, :stop, :status]
       
       # GET /api/v1/livestreams
       def index
@@ -256,6 +257,10 @@ module Api
             wallet_address: message.user.wallet_address
           }
         }
+      end
+      
+      def set_livestream
+        @livestream = Livestream.find(params[:id])
       end
     end
   end

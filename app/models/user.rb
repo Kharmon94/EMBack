@@ -14,6 +14,9 @@ class User < ApplicationRecord
   has_many :trades, dependent: :destroy
   has_many :streams, dependent: :destroy
   has_many :purchases, dependent: :destroy
+  has_many :notifications, dependent: :destroy
+  has_many :comments, dependent: :destroy
+  has_many :likes, dependent: :destroy
   has_many :tickets, dependent: :destroy
   has_many :playlists, dependent: :destroy
   has_many :follows, dependent: :destroy

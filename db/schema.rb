@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_05_000008) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,7 +52,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.date "release_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "likes_count", default: 0, null: false
     t.index ["artist_id"], name: "index_albums_on_artist_id"
+    t.index ["likes_count"], name: "index_albums_on_likes_count"
   end
 
   create_table "artist_tokens", force: :cascade do |t|
@@ -85,6 +87,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_artists_on_user_id"
+  end
+
+  create_table "comments", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "commentable_type", null: false
+    t.bigint "commentable_id", null: false
+    t.text "content", null: false
+    t.integer "likes_count", default: 0, null: false
+    t.bigint "parent_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["commentable_type", "commentable_id", "created_at"], name: "idx_on_commentable_type_commentable_id_created_at_89c6e27600"
+    t.index ["commentable_type", "commentable_id"], name: "index_comments_on_commentable"
+    t.index ["commentable_type", "commentable_id"], name: "index_comments_on_commentable_type_and_commentable_id"
+    t.index ["parent_id"], name: "index_comments_on_parent_id"
+    t.index ["user_id"], name: "index_comments_on_user_id"
   end
 
   create_table "dividends", force: :cascade do |t|
@@ -155,6 +173,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.string "metadata_uri"
     t.jsonb "revenue_sources", default: []
     t.string "image_url"
+    t.integer "likes_count", default: 0, null: false
     t.index ["artist_id"], name: "index_fan_passes_on_artist_id"
     t.index ["collection_mint"], name: "index_fan_passes_on_collection_mint", unique: true
     t.index ["distribution_type"], name: "index_fan_passes_on_distribution_type"
@@ -178,6 +197,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
+  end
+
+  create_table "likes", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "likeable_type", null: false
+    t.bigint "likeable_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["likeable_type", "likeable_id"], name: "index_likes_on_likeable"
+    t.index ["likeable_type", "likeable_id"], name: "index_likes_on_likeable_type_and_likeable_id"
+    t.index ["user_id", "likeable_type", "likeable_id"], name: "index_likes_on_user_and_likeable", unique: true
+    t.index ["user_id"], name: "index_likes_on_user_id"
   end
 
   create_table "liquidity_pools", force: :cascade do |t|
@@ -210,6 +241,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.string "hls_url"
     t.datetime "started_at"
     t.datetime "ended_at"
+    t.integer "likes_count", default: 0, null: false
     t.index ["artist_id"], name: "index_livestreams_on_artist_id"
     t.index ["stream_key"], name: "index_livestreams_on_stream_key", unique: true
   end
@@ -225,6 +257,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["artist_id"], name: "index_merch_items_on_artist_id"
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "notification_type", null: false
+    t.string "title"
+    t.text "message"
+    t.jsonb "data", default: {}
+    t.boolean "read", default: false, null: false
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["notification_type"], name: "index_notifications_on_notification_type"
+    t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at"
+    t.index ["user_id", "read"], name: "index_notifications_on_user_id_and_read"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "order_items", force: :cascade do |t|
@@ -405,9 +453,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.datetime "updated_at", null: false
     t.integer "access_tier", default: 0, null: false
     t.integer "free_quality", default: 0, null: false
+    t.integer "likes_count", default: 0, null: false
     t.index ["access_tier"], name: "index_tracks_on_access_tier"
     t.index ["album_id", "access_tier"], name: "index_tracks_on_album_id_and_access_tier"
     t.index ["album_id"], name: "index_tracks_on_album_id"
+    t.index ["likes_count"], name: "index_tracks_on_likes_count"
   end
 
   create_table "trades", force: :cascade do |t|
@@ -433,6 +483,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
     t.integer "role", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "display_name"
+    t.text "bio"
+    t.string "avatar_url"
+    t.jsonb "social_links", default: {}
+    t.integer "followers_count", default: 0, null: false
+    t.integer "following_count", default: 0, null: false
+    t.index ["display_name"], name: "index_users_on_display_name"
     t.index ["email"], name: "index_users_on_email"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_users_on_role"
@@ -446,15 +503,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000004) do
   add_foreign_key "albums", "artists"
   add_foreign_key "artist_tokens", "artists"
   add_foreign_key "artists", "users"
+  add_foreign_key "comments", "comments", column: "parent_id"
+  add_foreign_key "comments", "users"
   add_foreign_key "dividends", "fan_pass_nfts"
   add_foreign_key "events", "artists"
   add_foreign_key "fan_pass_nfts", "fan_passes"
   add_foreign_key "fan_pass_nfts", "users"
   add_foreign_key "fan_passes", "artists"
   add_foreign_key "follows", "users"
+  add_foreign_key "likes", "users"
   add_foreign_key "liquidity_pools", "artist_tokens"
   add_foreign_key "livestreams", "artists"
   add_foreign_key "merch_items", "artists"
+  add_foreign_key "notifications", "users"
   add_foreign_key "order_items", "orders"
   add_foreign_key "orders", "users"
   add_foreign_key "playlist_tracks", "playlists"

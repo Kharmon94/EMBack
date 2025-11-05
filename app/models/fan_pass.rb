@@ -2,6 +2,8 @@ class FanPass < ApplicationRecord
   belongs_to :artist
   has_many :fan_pass_nfts, dependent: :destroy
   has_many :dividends, through: :fan_pass_nfts
+  has_many :comments, as: :commentable, dependent: :destroy
+  has_many :likes, as: :likeable, dependent: :destroy
   
   enum :distribution_type, { paid: 0, airdrop: 1, hybrid: 2 }, prefix: true
   

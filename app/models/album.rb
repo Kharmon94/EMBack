@@ -3,6 +3,8 @@ class Album < ApplicationRecord
   has_many :tracks, dependent: :destroy
   has_many :purchases, as: :purchasable, dependent: :destroy
   has_one :revenue_split, as: :splittable, dependent: :destroy
+  has_many :comments, as: :commentable, dependent: :destroy
+  has_many :likes, as: :likeable, dependent: :destroy
   
   validates :title, presence: true
   validates :price, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true

@@ -16,12 +16,19 @@ Rails.application.routes.draw do
       # Artists
       resources :artists, only: [:index, :show, :update] do
         member do
+          get :profile
           get :albums
           get :tokens
           get :events
           get :livestreams
         end
       end
+      
+      # Follow/Unfollow artists
+      post 'artists/:id/follow', to: 'follows#create'
+      delete 'artists/:id/follow', to: 'follows#destroy'
+      get 'artists/:id/followers', to: 'follows#followers'
+      get 'users/:id/following', to: 'follows#following'
       
       # Artist Tokens (Bonding Curve & DEX)
       resources :artist_tokens, path: 'tokens', only: [:index, :show, :create] do
@@ -45,17 +52,25 @@ Rails.application.routes.draw do
       # Music
       resources :albums, only: [:index, :show, :create, :update] do
         resources :tracks, only: [:index, :show, :create, :update]
+        resources :comments, only: [:index, :create], defaults: { commentable_type: 'Album' }
         member do
           patch :bulk_update_track_access
+          post :like, to: 'likes#create', defaults: { likeable_type: 'Album' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Album' }
+          get :likes, to: 'likes#index', defaults: { likeable_type: 'Album' }
         end
       end
       
       resources :tracks, only: [:index, :show] do
+        resources :comments, only: [:index, :create], defaults: { commentable_type: 'Track' }
         member do
           get :stream
           post :log_stream
           post :purchase
           patch :update_access
+          post :like, to: 'likes#create', defaults: { likeable_type: 'Track' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Track' }
+          get :likes, to: 'likes#index', defaults: { likeable_type: 'Track' }
         end
       end
       
@@ -70,8 +85,12 @@ Rails.application.routes.draw do
       # Events & Tickets
       resources :events do
         resources :ticket_tiers, only: [:index, :create, :update]
+        resources :comments, only: [:index, :create], defaults: { commentable_type: 'Event' }
         member do
           post :purchase_ticket
+          post :like, to: 'likes#create', defaults: { likeable_type: 'Event' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Event' }
+          get :likes, to: 'likes#index', defaults: { likeable_type: 'Event' }
         end
       end
       
@@ -84,12 +103,16 @@ Rails.application.routes.draw do
       
       # Livestreams
       resources :livestreams do
+        resources :comments, only: [:index, :create], defaults: { commentable_type: 'Livestream' }
         member do
           post :start
           post :stop
           post :tip
           get :messages
           get :status
+          post :like, to: 'likes#create', defaults: { likeable_type: 'Livestream' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Livestream' }
+          get :likes, to: 'likes#index', defaults: { likeable_type: 'Livestream' }
         end
         resources :messages, only: [:create], controller: 'livestream_messages'
       end
@@ -98,6 +121,16 @@ Rails.application.routes.draw do
       post 'streaming/validate', to: 'streaming#validate'
       post 'streaming/stream_started', to: 'streaming#stream_started'
       post 'streaming/stream_ended', to: 'streaming#stream_ended'
+      
+      # Notifications
+      resources :notifications, only: [:index, :destroy] do
+        collection do
+          post :mark_all_as_read
+        end
+        member do
+          post :mark_as_read
+        end
+      end
       
       # Commerce
       resources :merch_items, path: 'merch'
@@ -108,11 +141,23 @@ Rails.application.routes.draw do
       end
       
       resources :fan_passes, only: [:index, :show, :create, :update, :destroy] do
+        resources :comments, only: [:index, :create], defaults: { commentable_type: 'FanPass' }
         member do
           post :purchase
           get :holders
           get :dividends_history, path: 'dividends'
           post :distribute_dividends
+          post :like, to: 'likes#create', defaults: { likeable_type: 'FanPass' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'FanPass' }
+          get :likes, to: 'likes#index', defaults: { likeable_type: 'FanPass' }
+        end
+      end
+      
+      # Comments (for update/delete and likes)
+      resources :comments, only: [:update, :destroy] do
+        member do
+          post :like, to: 'likes#create', defaults: { likeable_type: 'Comment' }
+          delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Comment' }
         end
       end
       

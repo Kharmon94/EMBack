@@ -60,6 +60,14 @@ class Ability
     can :create, StreamMessage
     can :read, StreamMessage
     
+    # Social features
+    can :create, Comment
+    can :manage, Comment, user_id: user.id  # Can edit/delete own comments
+    can :create, Like
+    can :destroy, Like, user_id: user.id  # Can unlike
+    can :read, Notification, user_id: user.id
+    can :manage, Notification, user_id: user.id
+    
     # Read permissions
     artist_read_permissions(user)
   end

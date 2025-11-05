@@ -1,6 +1,8 @@
 class Livestream < ApplicationRecord
   belongs_to :artist
   has_many :stream_messages, dependent: :destroy
+  has_many :comments, as: :commentable, dependent: :destroy
+  has_many :likes, as: :likeable, dependent: :destroy
   
   # Keep existing status values for backward compatibility
   enum :status, { scheduled: 0, live: 1, ended: 2, cancelled: 3 }, default: :scheduled

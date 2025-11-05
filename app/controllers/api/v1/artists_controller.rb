@@ -1,9 +1,9 @@
 module Api
   module V1
     class ArtistsController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show, :albums, :events, :livestreams, :tokens]
-      load_and_authorize_resource except: [:index, :show, :albums, :events, :livestreams, :tokens]
-      skip_authorization_check only: [:index, :show, :albums, :events, :livestreams, :tokens]
+      skip_before_action :authenticate_user!, only: [:index, :show, :profile, :albums, :events, :livestreams, :tokens]
+      load_and_authorize_resource except: [:index, :show, :profile, :albums, :events, :livestreams, :tokens]
+      skip_authorization_check only: [:index, :show, :profile, :albums, :events, :livestreams, :tokens]
       
       # GET /api/v1/artists
       def index
@@ -36,6 +36,111 @@ module Api
         render json: {
           artist: detailed_artist_json(@artist),
           stats: artist_stats(@artist)
+        }
+      end
+      
+      # GET /api/v1/artists/:id/profile (Comprehensive showcase)
+      def profile
+        @artist = Artist.includes(
+          :user,
+          :artist_token,
+          :albums,
+          :events,
+          :livestreams,
+          :merch_items,
+          :fan_passes
+        ).find(params[:id])
+        
+        render json: {
+          artist: {
+            id: @artist.id,
+            name: @artist.name,
+            bio: @artist.bio,
+            avatar_url: @artist.avatar_url,
+            banner_url: @artist.banner_url,
+            verified: @artist.verified,
+            location: @artist.location,
+            genres: @artist.genres,
+            member_since: @artist.created_at,
+            social_links: @artist.user.social_links || {}
+          },
+          stats: {
+            followers_count: @artist.follows.count,
+            following_count: @artist.user.follows.count,
+            total_streams: @artist.albums.joins(:tracks).joins('INNER JOIN streams ON streams.track_id = tracks.id').count,
+            monthly_listeners: @artist.albums.joins(:tracks).joins('INNER JOIN streams ON streams.track_id = tracks.id').where('streams.created_at > ?', 30.days.ago).select('DISTINCT streams.user_id').count,
+            total_albums: @artist.albums.count,
+            total_tracks: @artist.albums.joins(:tracks).count,
+            total_events: @artist.events.count,
+            active_fan_passes: @artist.fan_passes.where(active: true).count,
+            total_comments: Comment.where(commentable: @artist.albums).or(Comment.where(commentable: @artist.events)).or(Comment.where(commentable: @artist.livestreams)).count,
+            total_likes: Like.where(likeable: @artist.albums).or(Like.where(likeable: Track.joins(:album).where(albums: { artist_id: @artist.id }))).count
+          },
+          token: @artist.artist_token ? {
+            name: @artist.artist_token.name,
+            symbol: @artist.artist_token.symbol,
+            mint_address: @artist.artist_token.mint_address,
+            current_price: @artist.artist_token.current_price,
+            market_cap: @artist.artist_token.market_cap,
+            holders_count: @artist.artist_token.holders_count,
+            price_change_24h: calculate_price_change(@artist.artist_token)
+          } : nil,
+          albums: @artist.albums.released.order(release_date: :desc).limit(10).map { |album|
+            {
+              id: album.id,
+              title: album.title,
+              cover_url: album.cover_url,
+              release_date: album.release_date,
+              track_count: album.tracks.count,
+              likes_count: album.likes_count
+            }
+          },
+          upcoming_events: @artist.events.upcoming.order(start_time: :asc).limit(5).map { |event|
+            {
+              id: event.id,
+              title: event.title,
+              start_time: event.start_time,
+              venue: event.venue,
+              ticket_tiers: event.ticket_tiers.map { |tier| { id: tier.id, name: tier.name, price: tier.price_sol, available: tier.available } }
+            }
+          },
+          recent_livestreams: @artist.livestreams.where(status: :ended).order(ended_at: :desc).limit(3).map { |stream|
+            {
+              id: stream.id,
+              title: stream.title,
+              status: stream.status,
+              viewer_count: stream.viewer_count,
+              ended_at: stream.ended_at
+            }
+          },
+          upcoming_livestreams: @artist.livestreams.upcoming.order(start_time: :asc).limit(3).map { |stream|
+            {
+              id: stream.id,
+              title: stream.title,
+              start_time: stream.start_time
+            }
+          },
+          merch_items: @artist.merch_items.order(created_at: :desc).limit(6).map { |merch|
+            {
+              id: merch.id,
+              name: merch.name,
+              price: merch.price,
+              image_url: merch.image_url,
+              stock: merch.stock
+            }
+          },
+          fan_passes: @artist.fan_passes.where(active: true).map { |pass|
+            {
+              id: pass.id,
+              name: pass.name,
+              price: pass.price,
+              minted_count: pass.minted_count,
+              max_supply: pass.max_supply,
+              dividend_percentage: pass.dividend_percentage,
+              perks_count: pass.total_perks_count
+            }
+          },
+          is_following: current_user ? Follow.exists?(user: current_user, artist: @artist) : false
         }
       end
       
@@ -80,6 +185,12 @@ module Api
       
       def artist_params
         params.require(:artist).permit(:name, :bio, :avatar_url, :banner_url, :twitter_handle, :instagram_handle)
+      end
+      
+      def calculate_price_change(token)
+        # Calculate 24h price change
+        # TODO: Implement actual 24h price tracking
+        0.0 # Placeholder
       end
       
       def artist_json(artist)
