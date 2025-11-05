@@ -1,7 +1,7 @@
 module Api
   module V1
     class AirdropsController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show, :proof]
+      skip_before_action :authenticate_user!, only: [:index, :show, :proof], raise: false
       load_and_authorize_resource except: [:proof, :claim, :index, :show]
       skip_authorization_check only: [:index, :show, :proof]
       

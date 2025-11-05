@@ -1,7 +1,7 @@
 module Api
   module V1
     class PlatformController < BaseController
-      skip_before_action :authenticate_user!
+      skip_before_action :authenticate_user!, raise: false
       skip_authorization_check
       
       # GET /api/v1/platform/metrics

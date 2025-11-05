@@ -1,7 +1,7 @@
 module Api
   module V1
     class FanPassesController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show]
+      skip_before_action :authenticate_user!, only: [:index, :show], raise: false
       load_and_authorize_resource except: [:index, :show]
       skip_authorization_check only: [:index, :show]
       

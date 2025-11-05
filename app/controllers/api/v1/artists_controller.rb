@@ -1,7 +1,7 @@
 module Api
   module V1
     class ArtistsController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show, :profile, :albums, :events, :livestreams, :tokens]
+      skip_before_action :authenticate_user!, only: [:index, :show, :profile, :albums, :events, :livestreams, :tokens], raise: false
       load_and_authorize_resource except: [:index, :show, :profile, :albums, :events, :livestreams, :tokens]
       skip_authorization_check only: [:index, :show, :profile, :albums, :events, :livestreams, :tokens]
       

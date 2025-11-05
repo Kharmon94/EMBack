@@ -1,7 +1,7 @@
 module Api
   module V1
     class MinisController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show, :watch, :feed, :trending, :following]
+      skip_before_action :authenticate_user!, only: [:index, :show, :watch, :feed, :trending, :following], raise: false
       load_and_authorize_resource except: [:index, :show, :watch, :log_view, :feed, :trending, :following]
       skip_authorization_check only: [:index, :show, :watch, :feed, :trending, :following]
       before_action :set_mini, only: [:show, :update, :destroy, :watch, :log_view, :publish, :share]

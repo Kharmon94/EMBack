@@ -3,7 +3,7 @@ module Api
     module Auth
       class RegistrationsController < Devise::RegistrationsController
         respond_to :json
-        skip_before_action :authenticate_user!, only: [:create]
+        skip_before_action :authenticate_user!, only: [:create], raise: false
         
         # POST /api/v1/auth/sign_up
         # Body: { wallet_address: "...", signature: "...", role: "fan|artist", artist_name: "..." }
