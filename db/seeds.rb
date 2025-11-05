@@ -410,7 +410,7 @@ artists.each_with_index do |artist, index|
       price: pass[:price],
       max_supply: pass_index == 1 ? 100 : 1000, # VIP limited to 100, Basic 1000
       dividend_percentage: pass_index == 1 ? 10.0 : 5.0, # VIP gets higher dividends
-      distribution_type: :monthly,
+      distribution_type: :paid, # paid, airdrop, or hybrid
       token_gate_amount: pass_index == 1 ? 1000 : 0,
       perks: pass[:perks],
       active: true
@@ -505,7 +505,7 @@ Video.published.each do |video|
       watched_duration: watched_duration,
       completed: completed,
       nft_holder: nft_holder,
-      access_tier: nft_holder ? 'premium' : (video.free? ? 'free' : 'preview'),
+      access_tier: nft_holder ? 'premium' : (video.access_tier == 'free' ? 'free' : 'preview'),
       created_at: rand(1..30).days.ago
     )
     
@@ -615,7 +615,7 @@ Mini.published.each do |mini|
       watched_duration: watched_duration,
       completed: completed,
       nft_holder: nft_holder,
-      access_tier: nft_holder ? 'premium' : (mini.free? ? 'free' : 'preview'),
+      access_tier: nft_holder ? 'premium' : (mini.access_tier == 'free' ? 'free' : 'preview'),
       created_at: rand(1..30).days.ago
     )
     

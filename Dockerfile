@@ -44,6 +44,9 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
+# Make bin files executable
+RUN chmod +x bin/docker-entrypoint bin/rails bin/rake
+
 
 
 
@@ -57,7 +60,8 @@ COPY --from=build /rails /rails
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    chown -R rails:rails db log storage tmp
+    chmod +x bin/* && \
+    chown -R rails:rails db log storage tmp bin
 USER 1000:1000
 
 # Entrypoint prepares the database.
