@@ -52,7 +52,7 @@ gem "faraday-retry", "~> 2.0"
 gem "ipfs-api", "~> 0.1"
 
 # QR code generation for tickets
-gem "rqrcode", "~> 2.0"
+gem "rqrcode", "~> 3.1"
 
 # JSON Web Tokens
 gem "jwt", "~> 2.7"
