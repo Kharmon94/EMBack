@@ -55,7 +55,7 @@ gem "ipfs-api", "~> 0.1"
 gem "rqrcode", "~> 2.0"
 
 # JSON Web Tokens
-gem "jwt", "~> 2.7"
+gem "jwt", "~> 3.1"
 
 # AWS SDK for storage fallback
 gem "aws-sdk-s3", "~> 1.0"
