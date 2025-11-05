@@ -7,15 +7,21 @@ if [ -z "${LD_PRELOAD+x}" ]; then
 fi
 
 # If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
+# Check for both "./bin/rails server" and "bundle exec rails server"
+if [[ "$*" == *"rails server"* ]] || [[ "$*" == *"rails s"* ]]; then
+  echo "Running database migrations..."
+  bundle exec rails db:prepare
   
   # Seed database if it's empty (check if users table is empty)
-  if [ "$(./bin/rails runner 'puts User.count')" == "0" ]; then
+  echo "Checking if database needs seeding..."
+  USER_COUNT=$(bundle exec rails runner 'puts User.count' 2>/dev/null || echo "0")
+  
+  if [ "$USER_COUNT" == "0" ]; then
     echo "Database is empty, running seed..."
-    ./bin/rails db:seed
+    bundle exec rails db:seed
+    echo "Seed completed!"
   else
-    echo "Database already has data, skipping seed."
+    echo "Database already has $USER_COUNT users, skipping seed."
   fi
 fi
 
