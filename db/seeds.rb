@@ -462,12 +462,26 @@ artists.each_with_index do |artist, index|
     
     published = [true, true, true, false].sample # Most published, some drafts
     
+    # Use real demo videos from public sources
+    sample_videos = [
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", duration: 596 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", duration: 653 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", duration: 15 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4", duration: 15 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4", duration: 60 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", duration: 15 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", duration: 888 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", duration: 734 },
+    ]
+    
+    sample_video = sample_videos[video_index % sample_videos.length]
+    
     video = Video.create!(
       artist: artist,
       title: "#{artist.name} - #{video_titles[video_index % video_titles.length]}",
       description: "An amazing video from #{artist.name}. #{['Subscribe for more content!', 'Part of the latest album release.', 'Exclusive content for fans.'].sample}",
-      duration: rand(180..600), # 3-10 minutes
-      video_url: "ipfs://Qm#{SecureRandom.hex(23)}", # Mock IPFS URL
+      duration: sample_video[:duration],
+      video_url: sample_video[:url],
       thumbnail_url: "https://picsum.photos/seed/video#{artist.id}#{video_index}/1280/720",
       price: price,
       access_tier: access_tier,
@@ -561,21 +575,23 @@ artists.each_with_index do |artist, index|
     
     published = [true, true, true, true, false].sample # 80% published
     
-    # Durations between 15-120 seconds (mostly 30-60 seconds)
-    duration = [
-      rand(15..30),   # short
-      rand(30..60),   # ideal
-      rand(30..60),   # ideal (weighted)
-      rand(60..90),   # longer
-      rand(90..120)   # max length
-    ].sample
+    # Use real short videos from public sources
+    sample_minis = [
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", duration: 15 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4", duration: 15 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4", duration: 60 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", duration: 15 },
+      { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", duration: 15 },
+    ]
+    
+    sample_mini = sample_minis[mini_index % sample_minis.length]
     
     mini = Mini.create!(
       artist: artist,
       title: "#{artist.name} - #{mini_titles[mini_index % mini_titles.length]}",
       description: ["🔥", "New sound!", "What do you think?", "Vibes only", "LMK your thoughts 👇"].sample,
-      duration: duration,
-      video_url: "ipfs://Qm#{SecureRandom.hex(23)}", # Mock IPFS URL
+      duration: sample_mini[:duration],
+      video_url: sample_mini[:url],
       thumbnail_url: "https://picsum.photos/seed/mini#{artist.id}#{mini_index}/720/1280", # 9:16 vertical
       price: price,
       access_tier: access_tier,
