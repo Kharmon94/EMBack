@@ -35,6 +35,11 @@ Rails.application.routes.draw do
         end
       end
       
+      # Artist Dashboard (current user's artist data)
+      namespace :artist do
+        get 'dashboard', to: 'dashboard#index'
+      end
+      
       # Follow/Unfollow artists
       post 'artists/:id/follow', to: 'follows#create'
       delete 'artists/:id/follow', to: 'follows#destroy'

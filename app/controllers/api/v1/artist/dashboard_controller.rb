@@ -1,0 +1,149 @@
+module Api
+  module V1
+    module Artist
+      class DashboardController < BaseController
+        before_action :require_artist!
+        skip_authorization_check
+        
+        # GET /api/v1/artist/dashboard
+        def index
+          artist = current_artist
+          
+          render json: {
+            artist: {
+              id: artist.id,
+              name: artist.name,
+              avatar_url: artist.avatar_url,
+              verified: artist.verified
+            },
+            stats: {
+              followers_count: artist.follows.count,
+              total_streams: artist.albums.joins(:tracks).joins('INNER JOIN streams ON streams.track_id = tracks.id').count,
+              monthly_listeners: artist.albums.joins(:tracks).joins('INNER JOIN streams ON streams.track_id = tracks.id').where('streams.created_at > ?', 30.days.ago).select('DISTINCT streams.user_id').count,
+              total_revenue: calculate_total_revenue(artist),
+              this_month_revenue: calculate_month_revenue(artist)
+            },
+            token: artist.artist_token ? {
+              id: artist.artist_token.id,
+              symbol: artist.artist_token.symbol,
+              current_price: artist.artist_token.current_price,
+              market_cap: artist.artist_token.market_cap,
+              holders_count: artist.artist_token.holders_count
+            } : nil,
+            content_counts: {
+              albums: artist.albums.count,
+              tracks: artist.albums.joins(:tracks).count,
+              events: artist.events.count,
+              upcoming_events: artist.events.upcoming.count,
+              livestreams: artist.livestreams.count,
+              upcoming_livestreams: artist.livestreams.upcoming.count,
+              videos: artist.videos.published.count,
+              minis: artist.minis.published.count,
+              fan_passes: artist.fan_passes.where(active: true).count,
+              merch_items: artist.merch_items.count
+            },
+            recent_activity: recent_activity(artist),
+            upcoming_schedule: upcoming_schedule(artist)
+          }
+        end
+        
+        private
+        
+        def calculate_total_revenue(artist)
+          # Sum up all revenue sources
+          ticket_sales = artist.events.joins(:tickets).sum('ticket_tiers.price_sol * tickets.quantity')
+          album_sales = artist.albums.joins(:purchases).sum('purchases.price_sol')
+          fan_pass_sales = artist.fan_passes.joins(:purchases).sum('purchases.price_sol')
+          merch_sales = artist.merch_items.joins(:orders).sum('orders.total_price')
+          
+          ticket_sales + album_sales + fan_pass_sales + merch_sales
+        end
+        
+        def calculate_month_revenue(artist)
+          start_date = 30.days.ago
+          
+          ticket_sales = artist.events.joins(:tickets).where('tickets.created_at > ?', start_date).sum('ticket_tiers.price_sol * tickets.quantity')
+          album_sales = artist.albums.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_sol')
+          fan_pass_sales = artist.fan_passes.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_sol')
+          merch_sales = artist.merch_items.joins(:orders).where('orders.created_at > ?', start_date).sum('orders.total_price')
+          
+          ticket_sales + album_sales + fan_pass_sales + merch_sales
+        end
+        
+        def recent_activity(artist)
+          activities = []
+          
+          # Recent purchases
+          Purchase.where(album_id: artist.albums.pluck(:id))
+            .or(Purchase.where(fan_pass_id: artist.fan_passes.pluck(:id)))
+            .order(created_at: :desc)
+            .limit(5)
+            .each do |purchase|
+              activities << {
+                type: 'purchase',
+                description: purchase.album_id ? "Album purchased: #{purchase.album.title}" : "Fan pass purchased: #{purchase.fan_pass.name}",
+                user: purchase.user.email || purchase.user.wallet_address,
+                amount: purchase.price_sol,
+                created_at: purchase.created_at
+              }
+            end
+          
+          # Recent followers
+          artist.follows.order(created_at: :desc).limit(5).each do |follow|
+            activities << {
+              type: 'follow',
+              description: "New follower",
+              user: follow.user.email || follow.user.wallet_address,
+              created_at: follow.created_at
+            }
+          end
+          
+          # Recent comments
+          Comment.where(commentable_type: 'Album', commentable_id: artist.albums.pluck(:id))
+            .or(Comment.where(commentable_type: 'Video', commentable_id: artist.videos.pluck(:id)))
+            .or(Comment.where(commentable_type: 'Mini', commentable_id: artist.minis.pluck(:id)))
+            .order(created_at: :desc)
+            .limit(5)
+            .each do |comment|
+              activities << {
+                type: 'comment',
+                description: "New comment on #{comment.commentable_type}: \"#{comment.content.truncate(50)}\"",
+                user: comment.user.email || comment.user.wallet_address,
+                created_at: comment.created_at
+              }
+            end
+          
+          activities.sort_by { |a| a[:created_at] }.reverse.take(10)
+        end
+        
+        def upcoming_schedule(artist)
+          schedule = []
+          
+          # Upcoming events
+          artist.events.upcoming.order(start_time: :asc).limit(3).each do |event|
+            schedule << {
+              type: 'event',
+              id: event.id,
+              title: event.title,
+              time: event.start_time,
+              venue: event.venue
+            }
+          end
+          
+          # Upcoming livestreams
+          artist.livestreams.upcoming.order(start_time: :asc).limit(3).each do |stream|
+            schedule << {
+              type: 'livestream',
+              id: stream.id,
+              title: stream.title,
+              time: stream.start_time
+            }
+          end
+          
+          schedule.sort_by { |s| s[:time] }.take(5)
+        end
+      end
+    end
+  end
+end
+
