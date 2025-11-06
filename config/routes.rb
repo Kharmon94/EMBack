@@ -244,6 +244,20 @@ Rails.application.routes.draw do
       get 'platform/metrics', to: 'platform#metrics'
       get 'platform/token', to: 'platform#token_info'
       
+      # Admin
+      namespace :admin do
+        get 'dashboard', to: 'admin#dashboard'
+        get 'users', to: 'admin#users'
+        patch 'users/:id', to: 'admin#update_user'
+        get 'analytics', to: 'admin#analytics'
+        get 'content', to: 'admin#content'
+        post 'content/:type/:id/feature', to: 'admin#feature_content'
+        delete 'content/:type/:id/remove', to: 'admin#remove_content'
+        get 'revenue', to: 'admin#revenue'
+        post 'verification/:id/approve', to: 'admin#approve_verification'
+        post 'verification/:id/reject', to: 'admin#reject_verification'
+      end
+      
       # Search
       get 'search', to: 'search#index'
     end
