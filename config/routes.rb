@@ -22,6 +22,9 @@ Rails.application.routes.draw do
         post 'auth/link_wallet', to: 'auth/account_linking#link_wallet'
         post 'auth/link_email', to: 'auth/account_linking#link_email'
         get 'auth/me', to: 'auth/account_linking#me'
+        
+        # Password management
+        post 'auth/change_password', to: 'auth/passwords#change_password'
       end
       
       # Artists
@@ -231,6 +234,11 @@ Rails.application.routes.draw do
       get 'profile/streams', to: 'users#streams'
       get 'profile/purchases', to: 'users#purchases'
       get 'profile/tickets', to: 'users#tickets'
+      
+      # User settings
+      get 'users/notification_preferences', to: 'users#notification_preferences'
+      patch 'users/notification_preferences', to: 'users#update_notification_preferences'
+      delete 'users/account', to: 'users#destroy_account'
       
       # Platform
       get 'platform/metrics', to: 'platform#metrics'
