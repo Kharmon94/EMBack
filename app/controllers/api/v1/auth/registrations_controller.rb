@@ -1,9 +1,8 @@
 module Api
   module V1
     module Auth
-      class RegistrationsController < Devise::RegistrationsController
-        respond_to :json
-        skip_before_action :authenticate_api_user!, only: [:create], raise: false
+      class RegistrationsController < BaseController
+        skip_before_action :authenticate_api_user!, only: [:create]
         
         # POST /api/v1/auth/sign_up
         # Body (Email): { email: "...", password: "...", role: "fan|artist", artist_name: "..." }
@@ -47,9 +46,11 @@ module Api
           
           if user.save
             create_artist_profile(user) if role == 'artist'
-            sign_in(user)
+            # Generate JWT token
+            token = generate_jwt_token(user)
             render json: {
               message: 'Account created successfully',
+              token: token,
               user: user_json(user)
             }, status: :created
           else
@@ -79,14 +80,21 @@ module Api
           
           if user.save
             create_artist_profile(user) if role == 'artist'
-            sign_in(user)
+            # Generate JWT token
+            token = generate_jwt_token(user)
             render json: {
               message: 'Account created successfully',
+              token: token,
               user: user_json(user)
             }, status: :created
           else
             render json: { error: 'Failed to create account', details: user.errors }, status: :unprocessable_entity
           end
+        end
+        
+        def generate_jwt_token(user)
+          # Use Warden::JWTAuth to generate token
+          Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first
         end
         
         def create_artist_profile(user)

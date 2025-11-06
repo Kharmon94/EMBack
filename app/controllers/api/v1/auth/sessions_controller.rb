@@ -1,8 +1,8 @@
 module Api
   module V1
     module Auth
-      class SessionsController < Devise::SessionsController
-        respond_to :json
+      class SessionsController < BaseController
+        skip_before_action :authenticate_api_user!, only: [:create]
         
         # POST /api/v1/auth/sign_in
         # Body (Email): { email: "...", password: "..." }
@@ -15,6 +15,22 @@ module Api
             sign_in_with_email
           else
             render json: { error: 'Must provide either email/password or wallet credentials' }, status: :unprocessable_entity
+          end
+        end
+        
+        # DELETE /api/v1/auth/sign_out
+        def destroy
+          # JWT tokens are stateless, so we just add to denylist
+          if current_user
+            # Get the JWT from the Authorization header
+            token = request.headers['Authorization']&.split(' ')&.last
+            if token
+              # Add to denylist (handled by warden-jwt_auth automatically on sign_out)
+              JwtDenylist.create!(jti: decode_jti_from_token(token), exp: Time.current + 1.day)
+            end
+            render json: { message: 'Signed out successfully' }, status: :ok
+          else
+            render json: { error: 'No active session' }, status: :unauthorized
           end
         end
         
@@ -37,9 +53,12 @@ module Api
             return render json: { error: 'User not found. Please sign up first.' }, status: :not_found
           end
           
-          sign_in(user)
+          # Generate JWT token
+          token = generate_jwt_token(user)
+          
           render json: {
             message: 'Signed in successfully',
+            token: token,
             user: user_json(user)
           }, status: :ok
         end
@@ -62,21 +81,26 @@ module Api
             return render json: { error: 'Invalid email or password' }, status: :unauthorized
           end
           
-          sign_in(user)
+          # Generate JWT token
+          token = generate_jwt_token(user)
+          
           render json: {
             message: 'Signed in successfully',
+            token: token,
             user: user_json(user)
           }, status: :ok
         end
         
-        # DELETE /api/v1/auth/sign_out
-        def destroy
-          if current_user
-            sign_out(current_user)
-            render json: { message: 'Signed out successfully' }, status: :ok
-          else
-            render json: { error: 'No active session' }, status: :unauthorized
-          end
+        def generate_jwt_token(user)
+          # Use Warden::JWTAuth to generate token
+          Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first
+        end
+        
+        def decode_jti_from_token(token)
+          # Decode JWT to get jti claim
+          JWT.decode(token, Rails.application.credentials.devise_jwt_secret_key || Rails.application.secret_key_base, true, algorithm: 'HS256').first['jti']
+        rescue
+          nil
         end
         
         def user_json(user)
