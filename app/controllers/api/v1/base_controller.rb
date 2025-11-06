@@ -30,22 +30,53 @@ module Api
       
       # Custom authentication for API mode
       def authenticate_api_user!
-        # Use Warden to authenticate via JWT, but don't throw on failure
-        user = warden.authenticate(:jwt, scope: :user)
+        token = extract_token_from_header
         
-        unless user
-          render json: { error: 'Unauthorized' }, status: :unauthorized
+        unless token
+          return render json: { error: 'No token provided' }, status: :unauthorized
+        end
+        
+        begin
+          decoded = JWT.decode(
+            token,
+            Rails.application.credentials.devise_jwt_secret_key || ENV['DEVISE_JWT_SECRET_KEY'] || Rails.application.secret_key_base,
+            true,
+            algorithm: 'HS256'
+          )
+          
+          user_id = decoded.first['sub']
+          jti = decoded.first['jti']
+          
+          # Check if token is in denylist
+          if JwtDenylist.exists?(jti: jti)
+            return render json: { error: 'Token has been revoked' }, status: :unauthorized
+          end
+          
+          @current_user = User.find_by(id: user_id)
+          
+          unless @current_user
+            render json: { error: 'User not found' }, status: :unauthorized
+          end
+        rescue JWT::DecodeError => e
+          render json: { error: 'Invalid token' }, status: :unauthorized
+        rescue => e
+          Rails.logger.error "JWT Auth Error: #{e.message}"
+          render json: { error: 'Authentication failed' }, status: :unauthorized
         end
       end
       
-      # Override current_user to use Warden
+      # Override current_user
       def current_user
-        @current_user ||= warden.user(:user)
+        @current_user
       end
       
-      # Access to Warden
-      def warden
-        request.env['warden']
+      # Extract JWT token from Authorization header
+      def extract_token_from_header
+        authorization_header = request.headers['Authorization']
+        return nil unless authorization_header
+        
+        # Format: "Bearer <token>"
+        authorization_header.split(' ').last if authorization_header.start_with?('Bearer ')
       end
       
       def not_found(exception)
