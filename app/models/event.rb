@@ -44,7 +44,7 @@ class Event < ApplicationRecord
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') || " \
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(venue || '')}, '')), 'C') || " \
-      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(city || '')}, '')), 'C') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(location || '')}, '')), 'C') || " \
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B')"
     )
   end

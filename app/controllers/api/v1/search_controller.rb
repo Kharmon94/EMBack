@@ -259,7 +259,7 @@ module Api
           artist_id: event.artist_id,
           artist_name: event.artist&.name,
           venue: event.venue,
-          city: event.city,
+          location: event.location,
           start_time: event.start_time,
           image_url: event.image_url,
           status: event.status

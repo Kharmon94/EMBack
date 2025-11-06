@@ -75,7 +75,7 @@ class AddSearchVectors < ActiveRecord::Migration[8.0]
           setweight(to_tsvector('english', coalesce(e.title, '')), 'A') ||
           setweight(to_tsvector('english', coalesce(e.description, '')), 'B') ||
           setweight(to_tsvector('english', coalesce(e.venue, '')), 'C') ||
-          setweight(to_tsvector('english', coalesce(e.city, '')), 'C') ||
+          setweight(to_tsvector('english', coalesce(e.location, '')), 'C') ||
           setweight(to_tsvector('english', coalesce((SELECT name FROM artists WHERE id = e.artist_id), '')), 'B');
       SQL
     end
