@@ -13,7 +13,7 @@ module Api
             total_revenue: calculate_total_revenue,
             total_content: total_content_count,
             pending_reports: ::Report.pending.count,
-            pending_verifications: ::Artist.where(verification_requested: true, verified: false).count,
+            pending_verifications: 0, # TODO: Add verification_requested column
             new_users_today: User.where('created_at > ?', 24.hours.ago).count,
             revenue_today: calculate_revenue_since(24.hours.ago)
           },
@@ -333,37 +333,38 @@ module Api
       def content_uploads_data(period)
         start_date = period.ago
         {
-          albums: ::Album.where('created_at > ?', start_date).group_by_week(:created_at).count,
-          tracks: ::Track.where('created_at > ?', start_date).group_by_week(:created_at).count,
-          videos: ::Video.where('created_at > ?', start_date).group_by_week(:created_at).count,
-          minis: ::Mini.where('created_at > ?', start_date).group_by_week(:created_at).count
+          albums: ::Album.where('created_at > ?', start_date).count,
+          tracks: ::Track.where('created_at > ?', start_date).count,
+          videos: ::Video.where('created_at > ?', start_date).count,
+          minis: ::Mini.where('created_at > ?', start_date).count
         }
       end
 
       def engagement_data(period)
         start_date = period.ago
         {
-          streams: Stream.where('created_at > ?', start_date).group_by_day(:created_at).count,
-          video_views: ::VideoView.where('created_at > ?', start_date).group_by_day(:created_at).count,
-          mini_views: ::MiniView.where('created_at > ?', start_date).group_by_day(:created_at).count,
-          likes: ::Like.where('created_at > ?', start_date).group_by_day(:created_at).count
+          streams: ::Stream.where('created_at > ?', start_date).count,
+          video_views: ::VideoView.where('created_at > ?', start_date).count,
+          mini_views: ::MiniView.where('created_at > ?', start_date).count,
+          likes: ::Like.where('created_at > ?', start_date).count
         }
       end
 
       def top_artists_by_revenue(limit)
-        ::Artist.joins('LEFT JOIN events ON events.artist_id = artists.id')
-              .joins('LEFT JOIN tickets ON tickets.event_id = events.id')
-              .joins('LEFT JOIN ticket_tiers ON ticket_tiers.id = tickets.ticket_tier_id')
-              .select('artists.*, SUM(ticket_tiers.price * tickets.quantity) as total_revenue')
-              .group('artists.id')
-              .order('total_revenue DESC NULLS LAST')
-              .limit(limit)
-              .map do |artist|
+        # Get revenue by artist through their content purchases
+        artist_revenues = ::Artist.joins('LEFT JOIN albums ON albums.artist_id = artists.id')
+                                  .joins('LEFT JOIN purchases ON purchases.purchasable_id = albums.id AND purchases.purchasable_type = \'Album\'')
+                                  .select('artists.id, artists.name, COALESCE(SUM(purchases.price_paid), 0) as total_revenue')
+                                  .group('artists.id, artists.name')
+                                  .order('total_revenue DESC')
+                                  .limit(limit)
+        
+        artist_revenues.map do |artist|
           {
             id: artist.id,
             name: artist.name,
-            revenue: artist.total_revenue || 0,
-            followers: artist.follows.count
+            revenue: artist.total_revenue.to_f,
+            followers: ::Follow.where(followable_type: 'Artist', followable_id: artist.id).count
           }
         end
       end
@@ -422,8 +423,9 @@ module Api
       end
 
       def calculate_platform_fees
-        # Platform fees from trades, etc
-        ::Trade.sum(:platform_fee_amount) || 0
+        # Platform fees from trades (5% of trade volume)
+        total_trade_volume = ::Trade.sum('amount * price') || 0
+        (total_trade_volume * 0.05).round(2)
       end
 
       def calculate_artist_payouts
@@ -443,22 +445,16 @@ module Api
       end
 
       def calculate_revenue_between(start_time, end_time)
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price * tickets.quantity')
-        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
-        
-        ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
+        ::Purchase.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_paid) || 0
       end
 
       def recent_transactions(limit)
         transactions = []
 
-        ::Purchase.includes(:user, :album, :fan_pass).order(created_at: :desc).limit(limit / 2).each do |purchase|
+        ::Purchase.includes(:user).order(created_at: :desc).limit(limit / 2).each do |purchase|
           transactions << {
-            type: purchase.album ? '::Album ::Purchase' : 'Fan Pass ::Purchase',
-            amount: purchase.price_sol,
-            artist: purchase.album ? purchase.album.artist.name : purchase.fan_pass.artist.name,
+            type: purchase.purchasable_type,
+            amount: purchase.price_paid,
             user: purchase.user.email || purchase.user.wallet_address,
             timestamp: purchase.created_at
           }
@@ -466,8 +462,8 @@ module Api
 
         ::Order.includes(:user).order(created_at: :desc).limit(limit / 4).each do |order|
           transactions << {
-            type: 'Merch ::Order',
-            amount: order.total_price,
+            type: 'Merch Order',
+            amount: order.total_amount,
             user: order.user.email || order.user.wallet_address,
             timestamp: order.created_at
           }
