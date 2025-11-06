@@ -27,6 +27,10 @@ Rails.application.routes.draw do
         post 'auth/change_password', to: 'auth/passwords#change_password'
       end
       
+      # Search
+      get 'search', to: 'search#index'
+      get 'search/all', to: 'search#all'
+      
       # Artists
       resources :artists, only: [:index, :show, :update] do
         member do
