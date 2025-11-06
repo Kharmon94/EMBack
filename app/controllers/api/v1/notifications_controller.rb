@@ -2,6 +2,7 @@ module Api
   module V1
     class NotificationsController < BaseController
       before_action :set_notification, only: [:mark_as_read, :destroy]
+      skip_authorization_check
       
       # GET /api/v1/notifications
       def index

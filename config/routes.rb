@@ -244,19 +244,17 @@ Rails.application.routes.draw do
       get 'platform/metrics', to: 'platform#metrics'
       get 'platform/token', to: 'platform#token_info'
       
-      # Admin
-      namespace :admin do
-        get 'dashboard', to: 'admin#dashboard'
-        get 'users', to: 'admin#users'
-        patch 'users/:id', to: 'admin#update_user'
-        get 'analytics', to: 'admin#analytics'
-        get 'content', to: 'admin#content'
-        post 'content/:type/:id/feature', to: 'admin#feature_content'
-        delete 'content/:type/:id/remove', to: 'admin#remove_content'
-        get 'revenue', to: 'admin#revenue'
-        post 'verification/:id/approve', to: 'admin#approve_verification'
-        post 'verification/:id/reject', to: 'admin#reject_verification'
-      end
+      # Admin routes (not using namespace since controller is AdminController, not Admin::DashboardController)
+      get 'admin/dashboard', to: 'admin#dashboard'
+      get 'admin/users', to: 'admin#users'
+      patch 'admin/users/:id', to: 'admin#update_user'
+      get 'admin/analytics', to: 'admin#analytics'
+      get 'admin/content', to: 'admin#content'
+      post 'admin/content/:type/:id/feature', to: 'admin#feature_content'
+      delete 'admin/content/:type/:id/remove', to: 'admin#remove_content'
+      get 'admin/revenue', to: 'admin#revenue'
+      post 'admin/verification/:id/approve', to: 'admin#approve_verification'
+      post 'admin/verification/:id/reject', to: 'admin#reject_verification'
       
       # Search
       get 'search', to: 'search#index'
