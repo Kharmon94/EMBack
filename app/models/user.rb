@@ -26,15 +26,49 @@ class User < ApplicationRecord
   has_many :airdrop_claims, dependent: :destroy
   
   # Validations
-  validates :wallet_address, presence: true, uniqueness: true
+  validates :wallet_address, uniqueness: true, allow_nil: true
+  validates :email, uniqueness: true, allow_nil: true
   validates :role, presence: true
+  validate :at_least_one_auth_method
   
-  # Allow wallet-based auth (email can be optional)
+  # Dual auth: email OR wallet required (not both)
   def email_required?
-    false
+    wallet_address.blank?
   end
   
   def email_changed?
-    false
+    super && wallet_address.blank?
+  end
+  
+  def password_required?
+    wallet_address.blank? && (encrypted_password.blank? || password.present?)
+  end
+  
+  # Auth method helpers
+  def has_email_auth?
+    email.present? && encrypted_password.present?
+  end
+  
+  def has_wallet_auth?
+    wallet_address.present?
+  end
+  
+  def can_perform_blockchain_actions?
+    wallet_address.present?
+  end
+  
+  def auth_methods
+    methods = []
+    methods << :email if has_email_auth?
+    methods << :wallet if has_wallet_auth?
+    methods
+  end
+  
+  private
+  
+  def at_least_one_auth_method
+    if wallet_address.blank? && (email.blank? || encrypted_password.blank?)
+      errors.add(:base, 'Must have either email/password or wallet address')
+    end
   end
 end

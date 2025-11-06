@@ -11,6 +11,11 @@ Rails.application.routes.draw do
         post 'sign_up', to: 'registrations#create'
         post 'sign_in', to: 'sessions#create'
         delete 'sign_out', to: 'sessions#destroy'
+        
+        # Account linking
+        post 'link_wallet', to: 'account_linking#link_wallet'
+        post 'link_email', to: 'account_linking#link_email'
+        get 'me', to: 'account_linking#me'
       end
       
       # Artists

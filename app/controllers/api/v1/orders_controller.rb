@@ -1,6 +1,9 @@
 module Api
   module V1
     class OrdersController < BaseController
+      include WalletRequired
+      
+      before_action :require_wallet_connection, only: [:create]
       load_and_authorize_resource
       
       # GET /api/v1/orders

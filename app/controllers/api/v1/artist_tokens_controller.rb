@@ -1,7 +1,10 @@
 module Api
   module V1
     class ArtistTokensController < BaseController
+      include WalletRequired
+      
       skip_before_action :authenticate_user!, only: [:index, :show, :trades, :chart], raise: false
+      before_action :require_wallet_connection, only: [:create, :buy, :sell]
       load_and_authorize_resource except: [:create, :index, :show, :trades, :chart]
       skip_authorization_check only: [:index, :show, :trades, :chart]
       
