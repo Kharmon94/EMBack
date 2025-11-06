@@ -251,6 +251,11 @@ Rails.application.routes.draw do
         resources :messages, only: [:create]
       end
       
+      # Shopping Cart
+      post 'cart/calculate_shipping', to: 'cart#calculate_shipping'
+      post 'cart/checkout', to: 'cart#checkout'
+      post 'cart/confirm_payment', to: 'cart#confirm_payment'
+      
       resources :messages, only: [] do
         member do
           patch :mark_read, to: 'messages#mark_read'

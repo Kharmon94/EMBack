@@ -1,5 +1,6 @@
 class Order < ApplicationRecord
   belongs_to :user
+  belongs_to :cart_order, optional: true
   has_many :order_items, dependent: :destroy
   has_many :merch_items, through: :order_items
   has_many :reviews, dependent: :nullify
@@ -13,6 +14,8 @@ class Order < ApplicationRecord
   scope :active, -> { where(status: [:paid, :processing, :shipped]) }
   scope :fulfilled, -> { where(status: [:shipped, :delivered]) }
   scope :pending_fulfillment, -> { where(status: [:paid, :processing]) }
+  scope :child_orders, -> { where.not(cart_order_id: nil) }
+  scope :standalone_orders, -> { where(cart_order_id: nil) }
   scope :for_artist, ->(artist_id) {
     joins(order_items: { merch_item: :artist })
       .where(merch_items: { artist_id: artist_id })

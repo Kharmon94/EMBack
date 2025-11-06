@@ -6,8 +6,10 @@ module Api
         
         # GET /api/v1/artist/orders
         def index
+          # Only show orders (including child orders from cart_orders)
+          # Cart orders themselves are not shown to artists
           @orders = ::Order.for_artist(current_artist.id)
-                          .includes(:user, order_items: :merch_item)
+                          .includes(:user, :cart_order, order_items: :merch_item)
                           .recent
           
           # Filter by status
@@ -115,6 +117,10 @@ module Api
             order_number: "##{order.id}",
             status: order.status,
             total_amount: order.total_amount,
+            shipping_fee: order.shipping_fee || 0,
+            seller_amount: order.seller_amount || 0,
+            is_cart_order: order.cart_order_id.present?,
+            cart_order_id: order.cart_order_id,
             customer: {
               id: order.user.id,
               email: order.user.email,
@@ -128,12 +134,12 @@ module Api
         end
         
         def detailed_order_json(order)
-          order_list_json(order).merge(
+          base = order_list_json(order).merge(
             shipping_address: order.shipping_address,
             carrier: order.carrier,
             estimated_delivery: order.estimated_delivery,
             delivered_at: order.delivered_at,
-            blockchain_receipt_url: order.blockchain_receipt_url,
+            blockchain_receipt_url: order.cart_order&.blockchain_receipt_url || order.blockchain_receipt_url,
             notes: order.notes,
             items: order.order_items.map { |item|
               {
@@ -149,6 +155,18 @@ module Api
               }
             }
           )
+          
+          # Add cart order info if this is a child order
+          if order.cart_order
+            base[:cart_order_info] = {
+              id: order.cart_order.id,
+              total_amount: order.cart_order.total_amount,
+              status: order.cart_order.status,
+              transaction_signature: order.cart_order.transaction_signature
+            }
+          end
+          
+          base
         end
         
         def generate_orders_csv(orders)

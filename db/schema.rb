@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,6 +103,44 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.index ["commentable_type", "commentable_id"], name: "index_comments_on_commentable_type_and_commentable_id"
     t.index ["parent_id"], name: "index_comments_on_parent_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
+  end
+
+  create_table "conversation_participants", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "last_read_at"
+    t.boolean "archived", default: false
+    t.boolean "muted", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "user_id"], name: "index_conversation_participants_unique", unique: true
+    t.index ["conversation_id"], name: "index_conversation_participants_on_conversation_id"
+    t.index ["user_id", "archived"], name: "index_conversation_participants_on_user_id_and_archived"
+    t.index ["user_id"], name: "index_conversation_participants_on_user_id"
+  end
+
+  create_table "conversations", force: :cascade do |t|
+    t.string "subject"
+    t.bigint "order_id"
+    t.datetime "last_message_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["last_message_at"], name: "index_conversations_on_last_message_at"
+    t.index ["order_id"], name: "index_conversations_on_order_id"
+  end
+
+  create_table "direct_messages", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.bigint "user_id", null: false
+    t.text "content", null: false
+    t.jsonb "attachments", default: []
+    t.datetime "read_at"
+    t.boolean "system_message", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "created_at"], name: "index_direct_messages_on_conversation_id_and_created_at"
+    t.index ["conversation_id"], name: "index_direct_messages_on_conversation_id"
+    t.index ["user_id"], name: "index_direct_messages_on_user_id"
   end
 
   create_table "dividends", force: :cascade do |t|
@@ -246,6 +284,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.index ["stream_key"], name: "index_livestreams_on_stream_key", unique: true
   end
 
+  create_table "merch_item_tags", force: :cascade do |t|
+    t.bigint "merch_item_id", null: false
+    t.bigint "product_tag_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["merch_item_id", "product_tag_id"], name: "index_merch_tags_unique", unique: true
+    t.index ["merch_item_id"], name: "index_merch_item_tags_on_merch_item_id"
+    t.index ["product_tag_id"], name: "index_merch_item_tags_on_product_tag_id"
+  end
+
   create_table "merch_items", force: :cascade do |t|
     t.bigint "artist_id", null: false
     t.string "title"
@@ -256,7 +304,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.integer "inventory_count"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "product_category_id"
+    t.string "sku"
+    t.string "brand"
+    t.boolean "featured", default: false
+    t.decimal "rating_average", precision: 3, scale: 2, default: "0.0"
+    t.integer "rating_count", default: 0
+    t.integer "view_count", default: 0
+    t.integer "purchase_count", default: 0
+    t.integer "low_stock_threshold", default: 5
+    t.decimal "weight", precision: 8, scale: 2
+    t.jsonb "dimensions", default: {}
+    t.boolean "token_gated", default: false
+    t.integer "minimum_tokens_required", default: 0
+    t.boolean "limited_edition", default: false
+    t.integer "edition_size"
+    t.integer "edition_number"
     t.index ["artist_id"], name: "index_merch_items_on_artist_id"
+    t.index ["featured"], name: "index_merch_items_on_featured"
+    t.index ["product_category_id"], name: "index_merch_items_on_product_category_id"
+    t.index ["sku"], name: "index_merch_items_on_sku", unique: true
   end
 
   create_table "mini_views", force: :cascade do |t|
@@ -340,6 +407,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.string "tracking_number"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "carrier"
+    t.datetime "shipped_at"
+    t.datetime "delivered_at"
+    t.datetime "estimated_delivery"
+    t.string "blockchain_receipt_url"
+    t.text "notes"
+    t.index ["tracking_number"], name: "index_orders_on_tracking_number"
     t.index ["user_id"], name: "index_orders_on_user_id"
   end
 
@@ -389,6 +463,47 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.index ["user_id"], name: "index_playlists_on_user_id"
   end
 
+  create_table "product_categories", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.text "description"
+    t.integer "parent_id"
+    t.string "image_url"
+    t.integer "position", default: 0
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_product_categories_on_active"
+    t.index ["parent_id"], name: "index_product_categories_on_parent_id"
+    t.index ["slug"], name: "index_product_categories_on_slug", unique: true
+  end
+
+  create_table "product_tags", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_product_tags_on_slug", unique: true
+  end
+
+  create_table "product_variants", force: :cascade do |t|
+    t.bigint "merch_item_id", null: false
+    t.string "sku", null: false
+    t.string "size"
+    t.string "color"
+    t.string "material"
+    t.decimal "price_modifier", precision: 10, scale: 2, default: "0.0"
+    t.integer "inventory_count", default: 0
+    t.integer "low_stock_threshold", default: 5
+    t.boolean "available", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["available"], name: "index_product_variants_on_available"
+    t.index ["merch_item_id"], name: "index_product_variants_on_merch_item_id"
+    t.index ["sku"], name: "index_product_variants_on_sku", unique: true
+  end
+
   create_table "purchases", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "purchasable_type", null: false
@@ -399,6 +514,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.datetime "updated_at", null: false
     t.index ["purchasable_type", "purchasable_id"], name: "index_purchases_on_purchasable"
     t.index ["user_id"], name: "index_purchases_on_user_id"
+  end
+
+  create_table "recently_viewed_items", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "merch_item_id", null: false
+    t.datetime "viewed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["merch_item_id"], name: "index_recently_viewed_items_on_merch_item_id"
+    t.index ["user_id", "merch_item_id"], name: "index_recently_viewed_items_on_user_id_and_merch_item_id", unique: true
+    t.index ["user_id", "viewed_at"], name: "index_recently_viewed_items_on_user_id_and_viewed_at"
+    t.index ["user_id"], name: "index_recently_viewed_items_on_user_id"
   end
 
   create_table "reports", force: :cascade do |t|
@@ -427,6 +554,40 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["splittable_type", "splittable_id"], name: "index_revenue_splits_on_splittable"
+  end
+
+  create_table "review_votes", force: :cascade do |t|
+    t.bigint "review_id", null: false
+    t.bigint "user_id", null: false
+    t.boolean "helpful", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["review_id", "user_id"], name: "index_review_votes_on_review_id_and_user_id", unique: true
+    t.index ["review_id"], name: "index_review_votes_on_review_id"
+    t.index ["user_id"], name: "index_review_votes_on_user_id"
+  end
+
+  create_table "reviews", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "merch_item_id", null: false
+    t.bigint "order_id"
+    t.integer "rating", null: false
+    t.string "title"
+    t.text "content"
+    t.boolean "verified_purchase", default: false
+    t.string "blockchain_proof_url"
+    t.integer "helpful_count", default: 0
+    t.integer "not_helpful_count", default: 0
+    t.text "artist_response"
+    t.datetime "artist_responded_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["merch_item_id", "user_id"], name: "index_reviews_on_merch_item_id_and_user_id", unique: true
+    t.index ["merch_item_id"], name: "index_reviews_on_merch_item_id"
+    t.index ["order_id"], name: "index_reviews_on_order_id"
+    t.index ["rating"], name: "index_reviews_on_rating"
+    t.index ["user_id"], name: "index_reviews_on_user_id"
+    t.index ["verified_purchase"], name: "index_reviews_on_verified_purchase"
   end
 
   create_table "stream_messages", force: :cascade do |t|
@@ -534,10 +695,24 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.jsonb "social_links", default: {}
     t.integer "followers_count", default: 0, null: false
     t.integer "following_count", default: 0, null: false
+    t.jsonb "notification_preferences", default: {"likes"=>true, "comments"=>true, "followers"=>true, "purchases"=>true, "livestreams"=>true, "email_enabled"=>true}
+    t.datetime "deleted_at"
+    t.boolean "suspended", default: false
+    t.datetime "suspended_at"
+    t.text "suspension_reason"
+    t.boolean "banned", default: false
+    t.datetime "banned_at"
+    t.text "ban_reason"
+    t.integer "accept_messages", default: 0
+    t.integer "blocked_user_ids", default: [], array: true
+    t.index ["banned"], name: "index_users_on_banned"
+    t.index ["blocked_user_ids"], name: "index_users_on_blocked_user_ids", using: :gin
+    t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["display_name"], name: "index_users_on_display_name"
     t.index ["email"], name: "index_users_on_email"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_users_on_role"
+    t.index ["suspended"], name: "index_users_on_suspended"
     t.index ["wallet_address"], name: "index_users_on_wallet_address", unique: true
   end
 
@@ -582,6 +757,32 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
     t.index ["views_count"], name: "index_videos_on_views_count"
   end
 
+  create_table "wishlist_items", force: :cascade do |t|
+    t.bigint "wishlist_id", null: false
+    t.bigint "merch_item_id", null: false
+    t.bigint "product_variant_id"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["merch_item_id"], name: "index_wishlist_items_on_merch_item_id"
+    t.index ["product_variant_id"], name: "index_wishlist_items_on_product_variant_id"
+    t.index ["wishlist_id", "merch_item_id"], name: "index_wishlist_items_on_wishlist_id_and_merch_item_id", unique: true
+    t.index ["wishlist_id"], name: "index_wishlist_items_on_wishlist_id"
+  end
+
+  create_table "wishlists", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", default: "My Wishlist", null: false
+    t.text "description"
+    t.boolean "public", default: false
+    t.string "share_token"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["share_token"], name: "index_wishlists_on_share_token", unique: true
+    t.index ["user_id", "public"], name: "index_wishlists_on_user_id_and_public"
+    t.index ["user_id"], name: "index_wishlists_on_user_id"
+  end
+
   add_foreign_key "airdrop_claims", "airdrops"
   add_foreign_key "airdrop_claims", "users"
   add_foreign_key "airdrops", "artist_tokens"
@@ -591,6 +792,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
   add_foreign_key "artists", "users"
   add_foreign_key "comments", "comments", column: "parent_id"
   add_foreign_key "comments", "users"
+  add_foreign_key "conversation_participants", "conversations"
+  add_foreign_key "conversation_participants", "users"
+  add_foreign_key "conversations", "orders"
+  add_foreign_key "direct_messages", "conversations"
+  add_foreign_key "direct_messages", "users"
   add_foreign_key "dividends", "fan_pass_nfts"
   add_foreign_key "events", "artists"
   add_foreign_key "fan_pass_nfts", "fan_passes"
@@ -600,7 +806,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
   add_foreign_key "likes", "users"
   add_foreign_key "liquidity_pools", "artist_tokens"
   add_foreign_key "livestreams", "artists"
+  add_foreign_key "merch_item_tags", "merch_items"
+  add_foreign_key "merch_item_tags", "product_tags"
   add_foreign_key "merch_items", "artists"
+  add_foreign_key "merch_items", "product_categories"
   add_foreign_key "mini_views", "minis"
   add_foreign_key "mini_views", "users"
   add_foreign_key "minis", "artists"
@@ -610,9 +819,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
   add_foreign_key "playlist_tracks", "playlists"
   add_foreign_key "playlist_tracks", "tracks"
   add_foreign_key "playlists", "users"
+  add_foreign_key "product_variants", "merch_items"
   add_foreign_key "purchases", "users"
+  add_foreign_key "recently_viewed_items", "merch_items"
+  add_foreign_key "recently_viewed_items", "users"
   add_foreign_key "reports", "users"
   add_foreign_key "reports", "users", column: "reviewer_id"
+  add_foreign_key "review_votes", "reviews"
+  add_foreign_key "review_votes", "users"
+  add_foreign_key "reviews", "merch_items"
+  add_foreign_key "reviews", "orders"
+  add_foreign_key "reviews", "users"
   add_foreign_key "stream_messages", "livestreams"
   add_foreign_key "stream_messages", "users"
   add_foreign_key "streams", "tracks"
@@ -626,4 +843,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_05_000010) do
   add_foreign_key "video_views", "users"
   add_foreign_key "video_views", "videos"
   add_foreign_key "videos", "artists"
+  add_foreign_key "wishlist_items", "merch_items"
+  add_foreign_key "wishlist_items", "product_variants"
+  add_foreign_key "wishlist_items", "wishlists"
+  add_foreign_key "wishlists", "users"
 end
