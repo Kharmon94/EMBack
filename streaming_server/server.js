@@ -1,7 +1,10 @@
 const NodeMediaServer = require('node-media-server');
 const axios = require('axios');
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3000';
+// Handle Railway env var format (may or may not include http://)
+const BACKEND_API_URL = process.env.BACKEND_API_URL?.startsWith('http') 
+  ? process.env.BACKEND_API_URL 
+  : `https://${process.env.BACKEND_API_URL || 'localhost:3000'}`;
 const RTMP_PORT = parseInt(process.env.RTMP_PORT || '1935');
 const HTTP_PORT = parseInt(process.env.HTTP_PORT || '8000');
 

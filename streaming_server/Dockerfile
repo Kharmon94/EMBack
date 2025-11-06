@@ -6,8 +6,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Verify FFmpeg installation
-RUN ffmpeg -version
+# Verify FFmpeg installation and make it executable
+RUN ffmpeg -version && \
+    chmod +x /usr/bin/ffmpeg /usr/bin/ffprobe
 
 # Set working directory
 WORKDIR /app
