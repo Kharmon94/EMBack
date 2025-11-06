@@ -12,7 +12,7 @@ module Api
             total_artists: ::Artist.count,
             total_revenue: calculate_total_revenue,
             total_content: total_content_count,
-            pending_reports: ::::Report.pending.count,
+            pending_reports: ::Report.pending.count,
             pending_verifications: ::Artist.where(verification_requested: true, verified: false).count,
             new_users_today: User.where('created_at > ?', 24.hours.ago).count,
             revenue_today: calculate_revenue_since(24.hours.ago)
@@ -26,7 +26,7 @@ module Api
             daily_active_users: User.where('last_sign_in_at > ?', 24.hours.ago).count,
             monthly_revenue: calculate_revenue_since(30.days.ago),
             content_uploads_24h: content_uploads_last_24h,
-            token_trades_24h: ::::Trade.where('created_at > ?', 24.hours.ago).count
+            token_trades_24h: ::Trade.where('created_at > ?', 24.hours.ago).count
           },
           recent_activity: recent_activity_feed
         }
@@ -225,25 +225,25 @@ module Api
       end
 
       def calculate_total_revenue
-        ticket_revenue = ::::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
-        album_revenue = ::::Purchase.where.not(album_id: nil).sum(:price_sol)
-        fan_pass_revenue = ::::Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
-        merch_revenue = ::::Order.sum(:total_price)
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
+        album_revenue = ::Purchase.where.not(album_id: nil).sum(:price_sol)
+        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
+        merch_revenue = ::Order.sum(:total_price)
         
         ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
       end
 
       def calculate_revenue_since(time)
-        ticket_revenue = ::::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at > ?', time).sum('ticket_tiers.price_sol * tickets.quantity')
-        album_revenue = ::::Purchase.where.not(album_id: nil).where('created_at > ?', time).sum(:price_sol)
-        fan_pass_revenue = ::::Purchase.where.not(fan_pass_id: nil).where('created_at > ?', time).sum(:price_sol)
-        merch_revenue = ::::Order.where('created_at > ?', time).sum(:total_price)
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at > ?', time).sum('ticket_tiers.price_sol * tickets.quantity')
+        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at > ?', time).sum(:price_sol)
+        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at > ?', time).sum(:price_sol)
+        merch_revenue = ::Order.where('created_at > ?', time).sum(:total_price)
         
         ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
       end
 
       def total_content_count
-        ::::Album.count + ::::Track.count + ::::Video.count + ::::Mini.count + ::::Livestream.count + ::::MerchItem.count
+        ::Album.count + ::Track.count + ::Video.count + ::Mini.count + ::Livestream.count + ::MerchItem.count
       end
 
       def content_uploads_last_24h
