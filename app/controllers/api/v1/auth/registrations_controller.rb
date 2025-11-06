@@ -3,6 +3,7 @@ module Api
     module Auth
       class RegistrationsController < BaseController
         skip_before_action :authenticate_api_user!, only: [:create]
+        skip_authorization_check
         
         # POST /api/v1/auth/sign_up
         # Body (Email): { email: "...", password: "...", role: "fan|artist", artist_name: "..." }

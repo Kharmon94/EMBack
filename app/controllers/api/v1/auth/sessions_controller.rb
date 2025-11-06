@@ -3,6 +3,7 @@ module Api
     module Auth
       class SessionsController < BaseController
         skip_before_action :authenticate_api_user!, only: [:create]
+        skip_authorization_check
         
         # POST /api/v1/auth/sign_in
         # Body (Email): { email: "...", password: "..." }

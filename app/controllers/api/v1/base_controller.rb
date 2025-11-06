@@ -30,10 +30,12 @@ module Api
       
       # Custom authentication for API mode
       def authenticate_api_user!
-        # Use Warden to authenticate via JWT
-        warden.authenticate!(:jwt, scope: :user)
-      rescue
-        render json: { error: 'Unauthorized' }, status: :unauthorized
+        # Use Warden to authenticate via JWT, but don't throw on failure
+        user = warden.authenticate(:jwt, scope: :user)
+        
+        unless user
+          render json: { error: 'Unauthorized' }, status: :unauthorized
+        end
       end
       
       # Override current_user to use Warden

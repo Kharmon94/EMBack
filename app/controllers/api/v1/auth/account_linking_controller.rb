@@ -1,8 +1,8 @@
 module Api
   module V1
     module Auth
-      class AccountLinkingController < ApplicationController
-        before_action :authenticate_user!
+      class AccountLinkingController < BaseController
+        skip_authorization_check
         
         # POST /api/v1/auth/link_wallet
         # Body: { wallet_address: "...", signature: "...", message: "..." }
