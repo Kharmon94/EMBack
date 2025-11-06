@@ -3,7 +3,7 @@ module Api
     class FanPassesController < BaseController
       include WalletRequired
       
-      skip_before_action :authenticate_user!, only: [:index, :show], raise: false
+      skip_before_action :authenticate_api_user!, only: [:index, :show], raise: false
       before_action :require_wallet_connection, only: [:purchase, :distribute_dividends]
       load_and_authorize_resource except: [:index, :show]
       skip_authorization_check only: [:index, :show]

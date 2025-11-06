@@ -1,7 +1,7 @@
 module Api
   module V1
     class StreamingController < BaseController
-      skip_before_action :authenticate_user!, raise: false
+      skip_before_action :authenticate_api_user!, raise: false
       skip_authorization_check
       
       # POST /api/v1/streaming/validate

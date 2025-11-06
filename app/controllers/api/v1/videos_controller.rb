@@ -1,7 +1,7 @@
 module Api
   module V1
     class VideosController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show, :watch], raise: false
+      skip_before_action :authenticate_api_user!, only: [:index, :show, :watch], raise: false
       load_and_authorize_resource except: [:index, :show, :watch, :log_view]
       skip_authorization_check only: [:index, :show, :watch]
       before_action :set_video, only: [:show, :update, :destroy, :watch, :log_view, :publish]

@@ -1,7 +1,7 @@
 module Api
   module V1
     class DexController < BaseController
-      skip_before_action :authenticate_user!, only: [:pools, :show], raise: false
+      skip_before_action :authenticate_api_user!, only: [:pools, :show], raise: false
       skip_authorization_check only: [:pools, :show, :swap, :add_liquidity, :remove_liquidity]
       
       # POST /api/v1/dex/swap

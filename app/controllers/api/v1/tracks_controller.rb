@@ -1,7 +1,7 @@
 module Api
   module V1
     class TracksController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show, :stream, :log_stream], raise: false
+      skip_before_action :authenticate_api_user!, only: [:index, :show, :stream, :log_stream], raise: false
       load_and_authorize_resource except: [:log_stream, :index, :show, :stream]
       skip_authorization_check only: [:index, :show, :stream, :log_stream]
       

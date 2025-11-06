@@ -1,7 +1,8 @@
 module Api
   module V1
     class BaseController < ApplicationController
-      before_action :authenticate_user!
+      # Custom authentication - use Warden directly since we're in API mode
+      before_action :authenticate_api_user!
       
       respond_to :json
       
@@ -26,6 +27,24 @@ module Api
       rescue_from CanCan::AccessDenied, with: :forbidden
       
       private
+      
+      # Custom authentication for API mode
+      def authenticate_api_user!
+        # Use Warden to authenticate via JWT
+        warden.authenticate!(:jwt, scope: :user)
+      rescue
+        render json: { error: 'Unauthorized' }, status: :unauthorized
+      end
+      
+      # Override current_user to use Warden
+      def current_user
+        @current_user ||= warden.user(:user)
+      end
+      
+      # Access to Warden
+      def warden
+        request.env['warden']
+      end
       
       def not_found(exception)
         render json: { error: exception.message }, status: :not_found
