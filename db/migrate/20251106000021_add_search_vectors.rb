@@ -114,7 +114,7 @@ class AddSearchVectors < ActiveRecord::Migration[8.0]
       
       execute <<-SQL
         UPDATE playlists p SET search_vector = 
-          setweight(to_tsvector('english', coalesce(p.name, '')), 'A') ||
+          setweight(to_tsvector('english', coalesce(p.title, '')), 'A') ||
           setweight(to_tsvector('english', coalesce(p.description, '')), 'B');
       SQL
     end
