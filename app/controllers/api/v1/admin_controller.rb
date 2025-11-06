@@ -9,24 +9,24 @@ module Api
         render json: {
           stats: {
             total_users: User.count,
-            total_artists: Artist.count,
+            total_artists: ::Artist.count,
             total_revenue: calculate_total_revenue,
             total_content: total_content_count,
-            pending_reports: Report.pending.count,
-            pending_verifications: Artist.where(verification_requested: true, verified: false).count,
+            pending_reports: ::::Report.pending.count,
+            pending_verifications: ::Artist.where(verification_requested: true, verified: false).count,
             new_users_today: User.where('created_at > ?', 24.hours.ago).count,
             revenue_today: calculate_revenue_since(24.hours.ago)
           },
           growth: {
             users_growth_percentage: calculate_growth_percentage(User, 30.days),
             revenue_growth_percentage: calculate_revenue_growth_percentage(30.days),
-            artists_growth_percentage: calculate_growth_percentage(Artist, 30.days)
+            artists_growth_percentage: calculate_growth_percentage(::Artist, 30.days)
           },
           quick_stats: {
             daily_active_users: User.where('last_sign_in_at > ?', 24.hours.ago).count,
             monthly_revenue: calculate_revenue_since(30.days.ago),
             content_uploads_24h: content_uploads_last_24h,
-            token_trades_24h: Trade.where('created_at > ?', 24.hours.ago).count
+            token_trades_24h: ::::Trade.where('created_at > ?', 24.hours.ago).count
           },
           recent_activity: recent_activity_feed
         }
@@ -51,7 +51,7 @@ module Api
         end
 
         @users = @users.includes(:artist).order(created_at: :desc)
-        @paginated = paginate(@users, per_page: 50)
+        @paginated = paginate(@users)
 
         render json: {
           users: @paginated.map { |user| admin_user_json(user) },
@@ -108,21 +108,21 @@ module Api
         content_type = params[:type] # albums, tracks, videos, minis, livestreams, merch_items
 
         items = case content_type
-                when 'albums' then Album.includes(:artist)
-                when 'tracks' then Track.includes(album: :artist)
-                when 'videos' then Video.includes(:artist)
-                when 'minis' then Mini.includes(:artist)
-                when 'livestreams' then Livestream.includes(:artist)
-                when 'merch_items' then MerchItem.includes(:artist)
+                when 'albums' then ::Album.includes(:artist)
+                when 'tracks' then ::Track.includes(album: :artist)
+                when 'videos' then ::Video.includes(:artist)
+                when 'minis' then ::Mini.includes(:artist)
+                when 'livestreams' then ::Livestream.includes(:artist)
+                when 'merch_items' then ::MerchItem.includes(:artist)
                 else
                   # All content - return summary
                   return render json: {
-                    albums: Album.count,
-                    tracks: Track.count,
-                    videos: Video.count,
-                    minis: Mini.count,
-                    livestreams: Livestream.count,
-                    merch_items: MerchItem.count,
+                    albums: ::Album.count,
+                    tracks: ::Track.count,
+                    videos: ::Video.count,
+                    minis: ::Mini.count,
+                    livestreams: ::Livestream.count,
+                    merch_items: ::MerchItem.count,
                     recent: recent_content_all_types
                   }
                 end
@@ -184,11 +184,11 @@ module Api
 
       # POST /api/v1/admin/verification/:id/approve
       def approve_verification
-        artist = Artist.find(params[:id])
+        artist = ::Artist.find(params[:id])
         artist.update!(verified: true, verification_requested: false)
         
         # Notify artist
-        Notification.create!(
+        ::Notification.create!(
           user: artist.user,
           notification_type: 'verification_approved',
           message: 'Congratulations! Your artist account has been verified.'
@@ -201,11 +201,11 @@ module Api
 
       # POST /api/v1/admin/verification/:id/reject
       def reject_verification
-        artist = Artist.find(params[:id])
+        artist = ::Artist.find(params[:id])
         artist.update!(verification_requested: false)
         
         # Notify artist
-        Notification.create!(
+        ::Notification.create!(
           user: artist.user,
           notification_type: 'verification_rejected',
           message: "Your verification request was not approved. Reason: #{params[:reason]}"
@@ -225,33 +225,33 @@ module Api
       end
 
       def calculate_total_revenue
-        ticket_revenue = Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
-        album_revenue = Purchase.where.not(album_id: nil).sum(:price_sol)
-        fan_pass_revenue = Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
-        merch_revenue = Order.sum(:total_price)
+        ticket_revenue = ::::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
+        album_revenue = ::::Purchase.where.not(album_id: nil).sum(:price_sol)
+        fan_pass_revenue = ::::Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
+        merch_revenue = ::::Order.sum(:total_price)
         
         ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
       end
 
       def calculate_revenue_since(time)
-        ticket_revenue = Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at > ?', time).sum('ticket_tiers.price_sol * tickets.quantity')
-        album_revenue = Purchase.where.not(album_id: nil).where('created_at > ?', time).sum(:price_sol)
-        fan_pass_revenue = Purchase.where.not(fan_pass_id: nil).where('created_at > ?', time).sum(:price_sol)
-        merch_revenue = Order.where('created_at > ?', time).sum(:total_price)
+        ticket_revenue = ::::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at > ?', time).sum('ticket_tiers.price_sol * tickets.quantity')
+        album_revenue = ::::Purchase.where.not(album_id: nil).where('created_at > ?', time).sum(:price_sol)
+        fan_pass_revenue = ::::Purchase.where.not(fan_pass_id: nil).where('created_at > ?', time).sum(:price_sol)
+        merch_revenue = ::::Order.where('created_at > ?', time).sum(:total_price)
         
         ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
       end
 
       def total_content_count
-        Album.count + Track.count + Video.count + Mini.count + Livestream.count + MerchItem.count
+        ::::Album.count + ::::Track.count + ::::Video.count + ::::Mini.count + ::::Livestream.count + ::::MerchItem.count
       end
 
       def content_uploads_last_24h
         {
-          albums: Album.where('created_at > ?', 24.hours.ago).count,
-          tracks: Track.where('created_at > ?', 24.hours.ago).count,
-          videos: Video.where('created_at > ?', 24.hours.ago).count,
-          minis: Mini.where('created_at > ?', 24.hours.ago).count
+          albums: ::Album.where('created_at > ?', 24.hours.ago).count,
+          tracks: ::Track.where('created_at > ?', 24.hours.ago).count,
+          videos: ::Video.where('created_at > ?', 24.hours.ago).count,
+          minis: ::Mini.where('created_at > ?', 24.hours.ago).count
         }
       end
 
@@ -268,10 +268,10 @@ module Api
         previous_start = period.ago * 2
         previous_end = period.ago
         
-        ticket_revenue = Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', previous_start, previous_end).sum('ticket_tiers.price_sol * tickets.quantity')
-        album_revenue = Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
-        fan_pass_revenue = Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
-        merch_revenue = Order.where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:total_price)
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', previous_start, previous_end).sum('ticket_tiers.price_sol * tickets.quantity')
+        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
+        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
+        merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:total_price)
         previous_revenue = ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
         
         return 0 if previous_revenue.zero?
@@ -292,17 +292,17 @@ module Api
         end
 
         # Recent content
-        Album.order(created_at: :desc).limit(3).each do |album|
+        ::Album.order(created_at: :desc).limit(3).each do |album|
           activities << {
             type: 'upload',
-            description: "Album uploaded: #{album.title}",
+            description: "::Album uploaded: #{album.title}",
             user: album.artist.name,
             timestamp: album.created_at
           }
         end
 
         # Recent reports
-        Report.pending.order(created_at: :desc).limit(3).each do |report|
+        ::Report.pending.order(created_at: :desc).limit(3).each do |report|
           activities << {
             type: 'report',
             description: "New report: #{report.reportable_type}",
@@ -340,10 +340,10 @@ module Api
         start_time = date.beginning_of_day
         end_time = date.end_of_day
         
-        ticket_revenue = Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price_sol * tickets.quantity')
-        album_revenue = Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        fan_pass_revenue = Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        merch_revenue = Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price_sol * tickets.quantity')
+        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
+        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
+        merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
         
         ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
       end
@@ -351,10 +351,10 @@ module Api
       def content_uploads_data(period)
         start_date = period.ago
         {
-          albums: Album.where('created_at > ?', start_date).group_by_week(:created_at).count,
-          tracks: Track.where('created_at > ?', start_date).group_by_week(:created_at).count,
-          videos: Video.where('created_at > ?', start_date).group_by_week(:created_at).count,
-          minis: Mini.where('created_at > ?', start_date).group_by_week(:created_at).count
+          albums: ::Album.where('created_at > ?', start_date).group_by_week(:created_at).count,
+          tracks: ::Track.where('created_at > ?', start_date).group_by_week(:created_at).count,
+          videos: ::Video.where('created_at > ?', start_date).group_by_week(:created_at).count,
+          minis: ::Mini.where('created_at > ?', start_date).group_by_week(:created_at).count
         }
       end
 
@@ -362,14 +362,14 @@ module Api
         start_date = period.ago
         {
           streams: Stream.where('created_at > ?', start_date).group_by_day(:created_at).count,
-          video_views: VideoView.where('created_at > ?', start_date).group_by_day(:created_at).count,
-          mini_views: MiniView.where('created_at > ?', start_date).group_by_day(:created_at).count,
-          likes: Like.where('created_at > ?', start_date).group_by_day(:created_at).count
+          video_views: ::VideoView.where('created_at > ?', start_date).group_by_day(:created_at).count,
+          mini_views: ::MiniView.where('created_at > ?', start_date).group_by_day(:created_at).count,
+          likes: ::Like.where('created_at > ?', start_date).group_by_day(:created_at).count
         }
       end
 
       def top_artists_by_revenue(limit)
-        Artist.joins('LEFT JOIN events ON events.artist_id = artists.id')
+        ::Artist.joins('LEFT JOIN events ON events.artist_id = artists.id')
               .joins('LEFT JOIN tickets ON tickets.event_id = events.id')
               .joins('LEFT JOIN ticket_tiers ON ticket_tiers.id = tickets.ticket_tier_id')
               .select('artists.*, SUM(ticket_tiers.price_sol * tickets.quantity) as total_revenue')
@@ -387,7 +387,7 @@ module Api
       end
 
       def top_content_by_streams(limit)
-        Track.joins(:streams)
+        ::Track.joins(:streams)
              .select('tracks.*, albums.title as album_title, artists.name as artist_name, COUNT(streams.id) as stream_count')
              .joins(album: :artist)
              .group('tracks.id, albums.title, artists.name')
@@ -415,24 +415,24 @@ module Api
       end
 
       def calculate_ticket_revenue
-        Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
+        ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
       end
 
       def calculate_album_revenue
-        Purchase.where.not(album_id: nil).sum(:price_sol)
+        ::Purchase.where.not(album_id: nil).sum(:price_sol)
       end
 
       def calculate_token_revenue
         # Token trading fees
-        Trade.sum(:platform_fee_amount) || 0
+        ::Trade.sum(:platform_fee_amount) || 0
       end
 
       def calculate_fan_pass_revenue
-        Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
+        ::Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
       end
 
       def calculate_merch_revenue
-        Order.sum(:total_price)
+        ::Order.sum(:total_price)
       end
 
       def calculate_dev_fees
@@ -442,7 +442,7 @@ module Api
 
       def calculate_platform_fees
         # Platform fees from trades, etc
-        Trade.sum(:platform_fee_amount) || 0
+        ::Trade.sum(:platform_fee_amount) || 0
       end
 
       def calculate_artist_payouts
@@ -462,10 +462,10 @@ module Api
       end
 
       def calculate_revenue_between(start_time, end_time)
-        ticket_revenue = Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price_sol * tickets.quantity')
-        album_revenue = Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        fan_pass_revenue = Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        merch_revenue = Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price_sol * tickets.quantity')
+        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
+        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
+        merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
         
         ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
       end
@@ -473,9 +473,9 @@ module Api
       def recent_transactions(limit)
         transactions = []
 
-        Purchase.includes(:user, :album, :fan_pass).order(created_at: :desc).limit(limit / 2).each do |purchase|
+        ::Purchase.includes(:user, :album, :fan_pass).order(created_at: :desc).limit(limit / 2).each do |purchase|
           transactions << {
-            type: purchase.album ? 'Album Purchase' : 'Fan Pass Purchase',
+            type: purchase.album ? '::Album ::Purchase' : 'Fan Pass ::Purchase',
             amount: purchase.price_sol,
             artist: purchase.album ? purchase.album.artist.name : purchase.fan_pass.artist.name,
             user: purchase.user.email || purchase.user.wallet_address,
@@ -483,9 +483,9 @@ module Api
           }
         end
 
-        Order.includes(:user).order(created_at: :desc).limit(limit / 4).each do |order|
+        ::Order.includes(:user).order(created_at: :desc).limit(limit / 4).each do |order|
           transactions << {
-            type: 'Merch Order',
+            type: 'Merch ::Order',
             amount: order.total_price,
             user: order.user.email || order.user.wallet_address,
             timestamp: order.created_at
@@ -498,16 +498,16 @@ module Api
       def recent_content_all_types
         content = []
         
-        Album.order(created_at: :desc).limit(3).each do |item|
-          content << { type: 'Album', id: item.id, title: item.title, artist: item.artist.name, created_at: item.created_at }
+        ::Album.order(created_at: :desc).limit(3).each do |item|
+          content << { type: '::Album', id: item.id, title: item.title, artist: item.artist.name, created_at: item.created_at }
         end
         
-        Video.includes(:artist).order(created_at: :desc).limit(3).each do |item|
-          content << { type: 'Video', id: item.id, title: item.title, artist: item.artist.name, created_at: item.created_at }
+        ::Video.includes(:artist).order(created_at: :desc).limit(3).each do |item|
+          content << { type: '::Video', id: item.id, title: item.title, artist: item.artist.name, created_at: item.created_at }
         end
         
-        Mini.includes(:artist).order(created_at: :desc).limit(3).each do |item|
-          content << { type: 'Mini', id: item.id, title: item.title, artist: item.artist.name, created_at: item.created_at }
+        ::Mini.includes(:artist).order(created_at: :desc).limit(3).each do |item|
+          content << { type: '::Mini', id: item.id, title: item.title, artist: item.artist.name, created_at: item.created_at }
         end
         
         content.sort_by { |c| c[:created_at] }.reverse.take(10)
@@ -524,12 +524,12 @@ module Api
 
       def find_content_item(type, id)
         case type
-        when 'albums' then Album.find(id)
-        when 'tracks' then Track.find(id)
-        when 'videos' then Video.find(id)
-        when 'minis' then Mini.find(id)
-        when 'livestreams' then Livestream.find(id)
-        when 'merch_items' then MerchItem.find(id)
+        when 'albums' then ::Album.find(id)
+        when 'tracks' then ::Track.find(id)
+        when 'videos' then ::Video.find(id)
+        when 'minis' then ::Mini.find(id)
+        when 'livestreams' then ::Livestream.find(id)
+        when 'merch_items' then ::MerchItem.find(id)
         else
           raise ActiveRecord::RecordNotFound
         end

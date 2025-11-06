@@ -7,7 +7,7 @@ module Api
       
       # GET /api/v1/artists
       def index
-        @artists = Artist.includes(:user, :artist_token)
+        @artists = ::Artist.includes(:user, :artist_token)
         
         # Filter by verified
         @artists = @artists.verified if params[:verified] == 'true'
