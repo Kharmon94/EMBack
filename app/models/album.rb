@@ -12,11 +12,31 @@ class Album < ApplicationRecord
   scope :released, -> { where("release_date <= ?", Date.today) }
   scope :upcoming, -> { where("release_date > ?", Date.today) }
   
+  # Full-text search
+  scope :search, ->(query) {
+    return all if query.blank?
+    where("search_vector @@ plainto_tsquery('english', ?)", query)
+      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+  }
+  
+  before_save :update_search_vector
+  
   def total_duration
     tracks.sum(:duration)
   end
   
   def total_streams
     tracks.joins(:streams).count
+  end
+  
+  private
+  
+  def update_search_vector
+    artist_name = artist&.name || ''
+    self.search_vector = Arel.sql(
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B')"
+    )
   end
 end

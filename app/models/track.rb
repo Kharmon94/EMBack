@@ -35,6 +35,15 @@ class Track < ApplicationRecord
   scope :preview_tracks, -> { where(access_tier: :preview_only) }
   scope :gated_tracks, -> { where(access_tier: :nft_required) }
   
+  # Full-text search
+  scope :search, ->(query) {
+    return all if query.blank?
+    where("search_vector @@ plainto_tsquery('english', ?)", query)
+      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+  }
+  
+  before_save :update_search_vector
+  
   # Helper methods
   def publicly_accessible?
     free? || preview_only?
@@ -54,5 +63,17 @@ class Track < ApplicationRecord
   
   def eligible_streams_count
     streams.where("duration >= ?", 30).count
+  end
+  
+  private
+  
+  def update_search_vector
+    artist_name = album&.artist&.name || ''
+    album_title = album&.title || ''
+    self.search_vector = Arel.sql(
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(album_title)}, '')), 'C')"
+    )
   end
 end

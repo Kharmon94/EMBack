@@ -23,4 +23,22 @@ class Artist < ApplicationRecord
   # Scopes
   scope :verified, -> { where(verified: true) }
   scope :with_token, -> { joins(:artist_token) }
+  
+  # Full-text search
+  scope :search, ->(query) {
+    return all if query.blank?
+    where("search_vector @@ plainto_tsquery('english', ?)", query)
+      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+  }
+  
+  before_save :update_search_vector
+  
+  private
+  
+  def update_search_vector
+    self.search_vector = Arel.sql(
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(name || '')}, '')), 'A') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(bio || '')}, '')), 'B')"
+    )
+  end
 end

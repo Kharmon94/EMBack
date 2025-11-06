@@ -1,5 +1,27 @@
 class Video < ApplicationRecord
   belongs_to :artist
+  
+  # Full-text search
+  scope :search, ->(query) {
+    return all if query.blank?
+    where("search_vector @@ plainto_tsquery('english', ?)", query)
+      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+  }
+  
+  before_save :update_search_vector
+  
+  private
+  
+  def update_search_vector
+    artist_name = artist&.name || ''
+    self.search_vector = Arel.sql(
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B')"
+    )
+  end
+  
+  public
   has_many :video_views, dependent: :destroy
   has_many :purchases, as: :purchasable, dependent: :destroy
   has_many :comments, as: :commentable, dependent: :destroy
