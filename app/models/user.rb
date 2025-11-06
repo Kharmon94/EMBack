@@ -31,17 +31,28 @@ class User < ApplicationRecord
   validates :role, presence: true
   validate :at_least_one_auth_method
   
-  # Dual auth: email OR wallet required (not both)
+  # Dual auth: email OR wallet required
+  # Override Devise methods to allow optional email when wallet is present
   def email_required?
+    # Email is required only if wallet is not present
     wallet_address.blank?
   end
   
   def email_changed?
-    super && wallet_address.blank?
+    # Only care about email changes if using email auth
+    email_changed = super
+    email_changed
   end
   
   def password_required?
-    wallet_address.blank? && (encrypted_password.blank? || password.present?)
+    # Password is required if:
+    # 1. Using email auth (wallet is blank OR email is present)
+    # 2. AND either creating new password or password is not set yet
+    if email.present?
+      encrypted_password.blank? || password.present?
+    else
+      false # Wallet-only users don't need password
+    end
   end
   
   # Auth method helpers
