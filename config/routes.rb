@@ -6,18 +6,22 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     namespace :v1 do
-      # Authentication (Devise scope required for auth controllers)
+      # Authentication (Devise with custom controllers)
+      devise_for :users, path: 'auth', controllers: {
+        registrations: 'api/v1/auth/registrations',
+        sessions: 'api/v1/auth/sessions'
+      }, skip: [:passwords, :confirmations, :unlocks]
+      
+      # Override Devise routes to use POST for sign_up and sign_in
       devise_scope :user do
-        namespace :auth do
-          post 'sign_up', to: 'registrations#create'
-          post 'sign_in', to: 'sessions#create'
-          delete 'sign_out', to: 'sessions#destroy'
-          
-          # Account linking
-          post 'link_wallet', to: 'account_linking#link_wallet'
-          post 'link_email', to: 'account_linking#link_email'
-          get 'me', to: 'account_linking#me'
-        end
+        post 'auth/sign_up', to: 'auth/registrations#create'
+        post 'auth/sign_in', to: 'auth/sessions#create'
+        delete 'auth/sign_out', to: 'auth/sessions#destroy'
+        
+        # Account linking
+        post 'auth/link_wallet', to: 'auth/account_linking#link_wallet'
+        post 'auth/link_email', to: 'auth/account_linking#link_email'
+        get 'auth/me', to: 'auth/account_linking#me'
       end
       
       # Artists
