@@ -23,7 +23,7 @@ module Api
             artists_growth_percentage: calculate_growth_percentage(::Artist, 30.days)
           },
           quick_stats: {
-            daily_active_users: User.where('last_sign_in_at > ?', 24.hours.ago).count,
+            daily_active_users: User.where('updated_at > ?', 24.hours.ago).count,
             monthly_revenue: calculate_revenue_since(30.days.ago),
             content_uploads_24h: content_uploads_last_24h,
             token_trades_24h: ::Trade.where('created_at > ?', 24.hours.ago).count
@@ -225,7 +225,7 @@ module Api
       end
 
       def calculate_total_revenue
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price * tickets.quantity')
         album_revenue = ::Purchase.where.not(album_id: nil).sum(:price_sol)
         fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
         merch_revenue = ::Order.sum(:total_price)
@@ -234,7 +234,7 @@ module Api
       end
 
       def calculate_revenue_since(time)
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at > ?', time).sum('ticket_tiers.price_sol * tickets.quantity')
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at > ?', time).sum('ticket_tiers.price * tickets.quantity')
         album_revenue = ::Purchase.where.not(album_id: nil).where('created_at > ?', time).sum(:price_sol)
         fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at > ?', time).sum(:price_sol)
         merch_revenue = ::Order.where('created_at > ?', time).sum(:total_price)
@@ -268,7 +268,7 @@ module Api
         previous_start = period.ago * 2
         previous_end = period.ago
         
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', previous_start, previous_end).sum('ticket_tiers.price_sol * tickets.quantity')
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', previous_start, previous_end).sum('ticket_tiers.price * tickets.quantity')
         album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
         fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
         merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:total_price)
@@ -340,7 +340,7 @@ module Api
         start_time = date.beginning_of_day
         end_time = date.end_of_day
         
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price_sol * tickets.quantity')
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price * tickets.quantity')
         album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
         fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
         merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
@@ -372,7 +372,7 @@ module Api
         ::Artist.joins('LEFT JOIN events ON events.artist_id = artists.id')
               .joins('LEFT JOIN tickets ON tickets.event_id = events.id')
               .joins('LEFT JOIN ticket_tiers ON ticket_tiers.id = tickets.ticket_tier_id')
-              .select('artists.*, SUM(ticket_tiers.price_sol * tickets.quantity) as total_revenue')
+              .select('artists.*, SUM(ticket_tiers.price * tickets.quantity) as total_revenue')
               .group('artists.id')
               .order('total_revenue DESC NULLS LAST')
               .limit(limit)
@@ -415,7 +415,7 @@ module Api
       end
 
       def calculate_ticket_revenue
-        ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price_sol * tickets.quantity')
+        ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price * tickets.quantity')
       end
 
       def calculate_album_revenue
@@ -462,7 +462,7 @@ module Api
       end
 
       def calculate_revenue_between(start_time, end_time)
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price_sol * tickets.quantity')
+        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price * tickets.quantity')
         album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
         fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
         merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
@@ -546,7 +546,7 @@ module Api
           suspension_reason: user.suspension_reason,
           ban_reason: user.ban_reason,
           created_at: user.created_at,
-          last_sign_in_at: user.current_sign_in_at,
+          last_sign_in_at: user.updated_at, # Using updated_at as proxy for activity
           artist: user.artist ? { id: user.artist.id, name: user.artist.name, verified: user.artist.verified } : nil
         }
       end
