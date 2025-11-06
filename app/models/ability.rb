@@ -78,6 +78,29 @@ class Ability
     can :read, Notification, user_id: user.id
     can :manage, Notification, user_id: user.id
     
+    # Shop features
+    can :create, Review
+    can :manage, Review, user_id: user.id
+    can :create, ReviewVote
+    can :manage, ReviewVote, user_id: user.id
+    can :create, Wishlist
+    can :manage, Wishlist, user_id: user.id
+    can :manage, WishlistItem, wishlist: { user_id: user.id }
+    can :create, RecentlyViewedItem
+    
+    # Direct Messaging
+    can :create, Conversation
+    can :read, Conversation do |conversation|
+      conversation.users.include?(user)
+    end
+    can :manage, ConversationParticipant, user_id: user.id
+    can :create, DirectMessage do |message|
+      message.conversation.users.include?(user)
+    end
+    can :read, DirectMessage do |message|
+      message.conversation.users.include?(user)
+    end
+    
     # Read permissions
     artist_read_permissions(user)
   end
@@ -94,6 +117,10 @@ class Ability
     can :read, TicketTier
     can :read, Livestream
     can :read, MerchItem
+    can :read, ProductCategory
+    can :read, ProductTag
+    can :read, ProductVariant
+    can :read, Review
     can :read, FanPass
     can :read, LiquidityPool
     can :read, PlatformToken
@@ -110,6 +137,10 @@ class Ability
     can :read, Event
     can :read, TicketTier
     can :read, MerchItem
+    can :read, ProductCategory
+    can :read, ProductTag
+    can :read, ProductVariant
+    can :read, Review
     can :read, PlatformToken
     can :read, PlatformMetric
   end

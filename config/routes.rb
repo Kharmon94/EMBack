@@ -41,6 +41,34 @@ Rails.application.routes.draw do
       # Artist Dashboard (current user's artist data)
       namespace :artist do
         get 'dashboard', to: 'dashboard#index'
+        
+        # Shop Management
+        resources :orders, only: [:index, :show] do
+          member do
+            patch :update_status
+            post :add_note
+          end
+          collection do
+            get :export
+          end
+        end
+        
+        resource :inventory, only: [] do
+          collection do
+            get :index
+          end
+          member do
+            patch ':id/adjust', to: 'inventory#adjust_stock'
+            patch ':id/variant/:variant_id/adjust', to: 'inventory#adjust_variant_stock'
+          end
+        end
+        
+        resource :shop_analytics, only: [] do
+          collection do
+            get :index
+            get :export
+          end
+        end
       end
       
       # Follow/Unfollow artists
@@ -186,7 +214,50 @@ Rails.application.routes.draw do
       end
       
       # Commerce
-      resources :merch_items, path: 'merch'
+      # Shop & Merchandise
+      resources :categories, only: [:index, :show]
+      resources :merch_items, path: 'merch' do
+        collection do
+          get :recently_viewed
+        end
+        member do
+          get :quick_view
+        end
+      end
+      
+      # Reviews
+      resources :reviews do
+        member do
+          post :vote
+          post :respond
+        end
+      end
+      
+      # Wishlists
+      resources :wishlists do
+        member do
+          post 'items', to: 'wishlists#add_item'
+          delete 'items/:item_id', to: 'wishlists#remove_item'
+        end
+      end
+      
+      # Direct Messaging
+      resources :conversations do
+        member do
+          patch :archive
+          patch :mute
+          post :mark_read
+        end
+        resources :messages, only: [:create]
+      end
+      
+      resources :messages, only: [] do
+        member do
+          patch :mark_read, to: 'messages#mark_read'
+        end
+      end
+      
+      # Orders
       resources :orders, only: [:index, :show, :create] do
         member do
           post :cancel

@@ -24,6 +24,16 @@ class User < ApplicationRecord
   has_many :stream_messages, dependent: :destroy
   has_many :orders, dependent: :destroy
   has_many :airdrop_claims, dependent: :destroy
+  has_many :reviews, dependent: :destroy
+  has_many :review_votes, dependent: :destroy
+  has_many :wishlists, dependent: :destroy
+  has_many :recently_viewed_items, dependent: :destroy
+  has_many :conversation_participants, dependent: :destroy
+  has_many :conversations, through: :conversation_participants
+  has_many :direct_messages, dependent: :destroy
+  
+  # Messaging preferences enum
+  enum :accept_messages, { everyone: 0, following_only: 1, no_one: 2 }, default: :everyone
   
   # Validations
   validates :wallet_address, uniqueness: true, allow_nil: true
