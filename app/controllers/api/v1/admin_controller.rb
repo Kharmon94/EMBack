@@ -225,21 +225,12 @@ module Api
       end
 
       def calculate_total_revenue
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price * tickets.quantity')
-        album_revenue = ::Purchase.where.not(album_id: nil).sum(:price_sol)
-        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
-        merch_revenue = ::Order.sum(:total_price)
-        
-        ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
+        # Simplified: Just sum all purchases (covers tickets, albums, fan passes, etc)
+        ::Purchase.sum(:price_paid) || 0
       end
 
       def calculate_revenue_since(time)
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at > ?', time).sum('ticket_tiers.price * tickets.quantity')
-        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at > ?', time).sum(:price_sol)
-        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at > ?', time).sum(:price_sol)
-        merch_revenue = ::Order.where('created_at > ?', time).sum(:total_price)
-        
-        ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
+        ::Purchase.where('created_at > ?', time).sum(:price_paid) || 0
       end
 
       def total_content_count
@@ -268,11 +259,7 @@ module Api
         previous_start = period.ago * 2
         previous_end = period.ago
         
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', previous_start, previous_end).sum('ticket_tiers.price * tickets.quantity')
-        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
-        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_sol)
-        merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:total_price)
-        previous_revenue = ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
+        previous_revenue = ::Purchase.where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_paid) || 0
         
         return 0 if previous_revenue.zero?
         ((current_revenue - previous_revenue) / previous_revenue * 100).round(1)
@@ -340,12 +327,7 @@ module Api
         start_time = date.beginning_of_day
         end_time = date.end_of_day
         
-        ticket_revenue = ::Event.joins(:tickets).joins(:ticket_tiers).where('tickets.created_at BETWEEN ? AND ?', start_time, end_time).sum('ticket_tiers.price * tickets.quantity')
-        album_revenue = ::Purchase.where.not(album_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        fan_pass_revenue = ::Purchase.where.not(fan_pass_id: nil).where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_sol)
-        merch_revenue = ::Order.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:total_price)
-        
-        ticket_revenue + album_revenue + fan_pass_revenue + merch_revenue
+        ::Purchase.where('created_at BETWEEN ? AND ?', start_time, end_time).sum(:price_paid) || 0
       end
 
       def content_uploads_data(period)
@@ -415,24 +397,23 @@ module Api
       end
 
       def calculate_ticket_revenue
-        ::Event.joins(:tickets).joins(:ticket_tiers).sum('ticket_tiers.price * tickets.quantity')
+        ::Purchase.where(purchasable_type: 'Ticket').sum(:price_paid) || 0
       end
 
       def calculate_album_revenue
-        ::Purchase.where.not(album_id: nil).sum(:price_sol)
+        ::Purchase.where(purchasable_type: 'Album').sum(:price_paid) || 0
       end
 
       def calculate_token_revenue
-        # Token trading fees
-        ::Trade.sum(:platform_fee_amount) || 0
+        ::Purchase.where(purchasable_type: 'ArtistToken').sum(:price_paid) || 0
       end
 
       def calculate_fan_pass_revenue
-        ::Purchase.where.not(fan_pass_id: nil).sum(:price_sol)
+        ::Purchase.where(purchasable_type: 'FanPass').sum(:price_paid) || 0
       end
 
       def calculate_merch_revenue
-        ::Order.sum(:total_price)
+        ::Order.sum(:total_amount) || 0
       end
 
       def calculate_dev_fees
