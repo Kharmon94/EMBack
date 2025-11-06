@@ -35,7 +35,7 @@ module Api
         # Soft delete (mark as deleted)
         current_user.update!(
           deleted_at: Time.current,
-          email: "deleted_#{current_user.id}@deleted.com" if current_user.email,
+          email: current_user.email ? "deleted_#{current_user.id}@deleted.com" : nil,
           wallet_address: nil
         )
 
