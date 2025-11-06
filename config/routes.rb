@@ -223,7 +223,10 @@ Rails.application.routes.draw do
         member do
           get :quick_view
         end
+        resources :variants, controller: 'product_variants', only: [:create]
       end
+      
+      resources :variants, controller: 'product_variants', only: [:update, :destroy]
       
       # Reviews
       resources :reviews do

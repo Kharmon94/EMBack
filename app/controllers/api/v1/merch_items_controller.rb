@@ -134,7 +134,11 @@ module Api
       def merch_params
         params.require(:merch_item).permit(
           :title, :description, :price, :inventory_count,
-          variants: {}, images: []
+          :sku, :brand, :product_category_id, :featured,
+          :low_stock_threshold, :weight,
+          :token_gated, :minimum_tokens_required,
+          :limited_edition, :edition_size, :edition_number,
+          dimensions: {}, images: [], product_tag_ids: []
         )
       end
       
