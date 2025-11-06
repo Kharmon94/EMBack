@@ -16,6 +16,15 @@ class Livestream < ApplicationRecord
   scope :active, -> { where(status: :live) }
   scope :upcoming, -> { where(status: :scheduled).where("start_time > ?", Time.current) }
   
+  # Full-text search
+  scope :search, ->(query) {
+    return all if query.blank?
+    where("search_vector @@ plainto_tsquery('english', ?)", query)
+      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+  }
+  
+  before_save :update_search_vector
+  
   def is_token_gated?
     token_gate_amount.present? && token_gate_amount > 0
   end
@@ -53,6 +62,15 @@ class Livestream < ApplicationRecord
   end
   
   private
+  
+  def update_search_vector
+    artist_name = artist&.name || ''
+    self.search_vector = Arel.sql(
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B')"
+    )
+  end
   
   def generate_stream_credentials
     # Generate secure stream key

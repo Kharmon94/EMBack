@@ -22,6 +22,15 @@ class Mini < ApplicationRecord
   scope :recent, -> { published.order(published_at: :desc) }
   scope :popular, -> { published.order(views_count: :desc) }
   
+  # Full-text search
+  scope :search, ->(query) {
+    return all if query.blank?
+    where("search_vector @@ plainto_tsquery('english', ?)", query)
+      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+  }
+  
+  before_save :update_search_vector
+  
   # Trending: high engagement in last 24-48 hours
   scope :trending, -> {
     published
@@ -107,6 +116,17 @@ class Mini < ApplicationRecord
   def completion_rate
     return 0 if mini_views.count.zero?
     (mini_views.where(completed: true).count.to_f / mini_views.count * 100).round(2)
+  end
+  
+  private
+  
+  def update_search_vector
+    artist_name = artist&.name || ''
+    self.search_vector = Arel.sql(
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B')"
+    )
   end
 end
 

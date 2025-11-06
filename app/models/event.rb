@@ -15,6 +15,15 @@ class Event < ApplicationRecord
   scope :past, -> { where("end_time < ?", Time.current) }
   scope :active, -> { where(status: [:published, :ongoing]) }
   
+  # Full-text search
+  scope :search, ->(query) {
+    return all if query.blank?
+    where("search_vector @@ plainto_tsquery('english', ?)", query)
+      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+  }
+  
+  before_save :update_search_vector
+  
   def sold_tickets_count
     ticket_tiers.sum(:sold)
   end
@@ -25,5 +34,18 @@ class Event < ApplicationRecord
   
   def is_sold_out?
     available_capacity <= 0
+  end
+  
+  private
+  
+  def update_search_vector
+    artist_name = artist&.name || ''
+    self.search_vector = Arel.sql(
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(venue || '')}, '')), 'C') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(city || '')}, '')), 'C') || " \
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B')"
+    )
   end
 end
