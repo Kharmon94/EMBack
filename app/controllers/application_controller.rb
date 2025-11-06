@@ -1,5 +1,8 @@
 class ApplicationController < ActionController::API
-  # Include Devise helpers (current_user, authenticate_user!, etc.)
+  # Include Devise helpers for API mode
+  include ActionController::MimeResponds
+  
+  # Configure Devise parameters
   before_action :configure_permitted_parameters, if: :devise_controller?
   
   protected

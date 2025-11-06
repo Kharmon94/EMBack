@@ -1,7 +1,6 @@
 module Api
   module V1
     class NotificationsController < BaseController
-      skip_before_action :authenticate_user!, only: [], raise: false
       before_action :set_notification, only: [:mark_as_read, :destroy]
       
       # GET /api/v1/notifications
