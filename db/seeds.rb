@@ -59,6 +59,33 @@ end
 puts "✅ Created #{User.count} users (1 admin, #{artist_users.count} artists, #{fan_users.count} fans)"
 
 # ============================================================
+# PRODUCT CATEGORIES & TAGS
+# ============================================================
+puts "\n🏷️  Creating product categories and tags..."
+
+# Root categories
+apparel = ProductCategory.create!(name: 'Apparel', slug: 'apparel', description: 'Clothing and wearables', position: 1, active: true)
+ProductCategory.create!(name: 'T-Shirts', slug: 't-shirts', parent: apparel, position: 1, active: true)
+ProductCategory.create!(name: 'Hoodies', slug: 'hoodies', parent: apparel, position: 2, active: true)
+ProductCategory.create!(name: 'Hats', slug: 'hats', parent: apparel, position: 3, active: true)
+ProductCategory.create!(name: 'Jackets', slug: 'jackets', parent: apparel, position: 4, active: true)
+
+ProductCategory.create!(name: 'Accessories', slug: 'accessories', description: 'Bags, pins, and more', position: 2, active: true)
+ProductCategory.create!(name: 'Vinyl & CDs', slug: 'vinyl-cds', description: 'Physical music media', position: 3, active: true)
+ProductCategory.create!(name: 'Posters & Art', slug: 'posters', description: 'Wall art and prints', position: 4, active: true)
+ProductCategory.create!(name: 'Digital', slug: 'digital', description: 'Digital downloads and assets', position: 5, active: true)
+ProductCategory.create!(name: 'Other', slug: 'other', description: 'Miscellaneous merchandise', position: 6, active: true)
+
+# Tags
+ProductTag.create!(name: 'Limited Edition', slug: 'limited-edition', description: 'Limited availability items')
+ProductTag.create!(name: 'Exclusive', slug: 'exclusive', description: 'Exclusive to this platform')
+ProductTag.create!(name: 'New Release', slug: 'new-release', description: 'Recently added products')
+ProductTag.create!(name: 'Best Seller', slug: 'best-seller', description: 'Top selling items')
+ProductTag.create!(name: 'Pre-Order', slug: 'pre-order', description: 'Available for pre-order')
+
+puts "✅ #{ProductCategory.count} categories and #{ProductTag.count} tags created!"
+
+# ============================================================
 # ARTISTS
 # ============================================================
 puts "\n🎤 Creating artists..."
