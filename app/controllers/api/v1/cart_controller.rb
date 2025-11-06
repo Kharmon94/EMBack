@@ -144,6 +144,29 @@ module Api
               end
               item.merch_item.increment_purchase_count!
             end
+            
+            # Auto-create conversation with seller
+            seller_user = order.order_items.first&.merch_item&.artist&.user
+            if seller_user && seller_user.id != current_user.id
+              existing = Conversation.between_users(current_user.id, seller_user.id)
+              
+              unless existing
+                conversation = Conversation.create!(
+                  subject: "Order ##{order.id}",
+                  order_id: order.id
+                )
+                
+                conversation.conversation_participants.create!(user: current_user)
+                conversation.conversation_participants.create!(user: seller_user)
+                
+                # Send system message
+                conversation.direct_messages.create!(
+                  user: current_user,
+                  content: "Order ##{order.id} has been confirmed. Thank you for your purchase!",
+                  system_message: true
+                )
+              end
+            end
           end
         end
         
