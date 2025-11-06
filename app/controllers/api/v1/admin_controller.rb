@@ -248,7 +248,9 @@ module Api
 
       def calculate_growth_percentage(model, period)
         current_count = model.where('created_at > ?', period.ago).count
-        previous_count = model.where('created_at BETWEEN ? AND ?', period.ago * 2, period.ago).count
+        previous_start = (period * 2).ago
+        previous_end = period.ago
+        previous_count = model.where('created_at BETWEEN ? AND ?', previous_start, previous_end).count
         
         return 0 if previous_count.zero?
         ((current_count - previous_count).to_f / previous_count * 100).round(1)
@@ -256,7 +258,7 @@ module Api
 
       def calculate_revenue_growth_percentage(period)
         current_revenue = calculate_revenue_since(period.ago)
-        previous_start = period.ago * 2
+        previous_start = (period * 2).ago
         previous_end = period.ago
         
         previous_revenue = ::Purchase.where('created_at BETWEEN ? AND ?', previous_start, previous_end).sum(:price_paid) || 0
