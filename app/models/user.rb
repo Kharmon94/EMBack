@@ -98,6 +98,16 @@ class User < ApplicationRecord
     methods
   end
   
+  # Required by warden-jwt_auth for JWT authentication
+  def self.find_for_jwt_authentication(sub)
+    find(sub)
+  end
+  
+  # Required by warden-jwt_auth for token generation
+  def jwt_subject
+    id.to_s
+  end
+  
   private
   
   def at_least_one_auth_method

@@ -322,5 +322,6 @@ Devise.setup do |config|
       ['DELETE', %r{^/api/v1/auth/sign_out$}]
     ]
     jwt.expiration_time = 24.hours.to_i
+    jwt.aud_header = 'JWT_AUD'
   end
 end
