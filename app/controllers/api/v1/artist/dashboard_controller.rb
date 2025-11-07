@@ -57,7 +57,8 @@ module Api
           # Fan passes: price * number of minted NFTs
           fan_pass_sales = artist.fan_passes.joins(:fan_pass_nfts).sum('fan_passes.price')
           
-          merch_sales = artist.merch_items.joins(:orders).sum('orders.total_price')
+          # Merch: through order_items
+          merch_sales = artist.merch_items.joins(:order_items).sum('order_items.price * order_items.quantity')
           
           ticket_sales + album_sales + fan_pass_sales + merch_sales
         end
@@ -72,7 +73,8 @@ module Api
           # Fan passes minted in the last month
           fan_pass_sales = artist.fan_passes.joins(:fan_pass_nfts).where('fan_pass_nfts.created_at > ?', start_date).sum('fan_passes.price')
           
-          merch_sales = artist.merch_items.joins(:orders).where('orders.created_at > ?', start_date).sum('orders.total_price')
+          # Merch sold in the last month
+          merch_sales = artist.merch_items.joins(:order_items).where('order_items.created_at > ?', start_date).sum('order_items.price * order_items.quantity')
           
           ticket_sales + album_sales + fan_pass_sales + merch_sales
         end
