@@ -51,9 +51,9 @@ module Api
         
         def calculate_total_revenue(artist)
           # Sum up all revenue sources
-          ticket_sales = artist.events.joins(:tickets).sum('ticket_tiers.price_sol * tickets.quantity')
-          album_sales = artist.albums.joins(:purchases).sum('purchases.price_sol')
-          fan_pass_sales = artist.fan_passes.joins(:purchases).sum('purchases.price_sol')
+          ticket_sales = artist.events.joins(tickets: :ticket_tier).sum('ticket_tiers.price * tickets.quantity')
+          album_sales = artist.albums.joins(:purchases).sum('purchases.price_paid')
+          fan_pass_sales = artist.fan_passes.joins(:purchases).sum('purchases.price_paid')
           merch_sales = artist.merch_items.joins(:orders).sum('orders.total_price')
           
           ticket_sales + album_sales + fan_pass_sales + merch_sales
@@ -62,9 +62,9 @@ module Api
         def calculate_month_revenue(artist)
           start_date = 30.days.ago
           
-          ticket_sales = artist.events.joins(:tickets).where('tickets.created_at > ?', start_date).sum('ticket_tiers.price_sol * tickets.quantity')
-          album_sales = artist.albums.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_sol')
-          fan_pass_sales = artist.fan_passes.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_sol')
+          ticket_sales = artist.events.joins(tickets: :ticket_tier).where('tickets.created_at > ?', start_date).sum('ticket_tiers.price * tickets.quantity')
+          album_sales = artist.albums.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_paid')
+          fan_pass_sales = artist.fan_passes.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_paid')
           merch_sales = artist.merch_items.joins(:orders).where('orders.created_at > ?', start_date).sum('orders.total_price')
           
           ticket_sales + album_sales + fan_pass_sales + merch_sales
