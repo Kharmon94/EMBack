@@ -13,6 +13,34 @@ module Api
         # Filter by artist
         @videos = @videos.where(artist_id: params[:artist_id]) if params[:artist_id]
         
+        # ADVANCED FILTERS
+        # Genre filter
+        @videos = @videos.joins(:video_genres).where(video_genres: { genre_id: params[:genre_ids] }) if params[:genre_ids].present?
+        
+        # Duration category
+        if params[:duration_category].present?
+          @videos = case params[:duration_category]
+                   when 'short' then @videos.where('duration < ?', 300)
+                   when 'medium' then @videos.where('duration BETWEEN ? AND ?', 300, 1200)
+                   when 'long' then @videos.where('duration > ?', 1200)
+                   else @videos
+                   end
+        end
+        
+        # Duration range
+        @videos = @videos.where('duration >= ?', params[:min_duration]) if params[:min_duration].present?
+        @videos = @videos.where('duration <= ?', params[:max_duration]) if params[:max_duration].present?
+        
+        # View count range
+        @videos = @videos.where('views_count >= ?', params[:min_views]) if params[:min_views].present?
+        
+        # Upload date range
+        @videos = @videos.where('published_at >= ?', params[:from_date]) if params[:from_date].present?
+        @videos = @videos.where('published_at <= ?', params[:to_date]) if params[:to_date].present?
+        
+        # Access tier
+        @videos = @videos.where(access_tier: params[:access_tier]) if params[:access_tier].present?
+        
         # Sort
         @videos = case params[:sort]
                   when 'recent' then @videos.recent

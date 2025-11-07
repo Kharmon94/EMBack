@@ -31,6 +31,34 @@ Rails.application.routes.draw do
       get 'search', to: 'search#index'
       get 'search/all', to: 'search#all'
       
+      # Recommendations & Discovery
+      namespace :recommendations do
+        get 'tracks', to: 'recommendations#tracks'
+        get 'albums', to: 'recommendations#albums'
+        get 'videos', to: 'recommendations#videos'
+        get 'minis', to: 'recommendations#minis'
+        get 'events', to: 'recommendations#events'
+        get 'livestreams', to: 'recommendations#livestreams'
+        get 'similar/:type/:id', to: 'recommendations#similar'
+        get 'related/:type/:id', to: 'recommendations#related'
+        get 'because_you_liked/:type/:id', to: 'recommendations#because_you_liked'
+      end
+      
+      namespace :discovery do
+        get 'feed', to: 'discovery#feed'
+        get 'related/:type/:id', to: 'discovery#related'
+        get 'trending', to: 'discovery#trending'
+        get 'friends_activity', to: 'discovery#friends_activity'
+        get 'continue_watching', to: 'discovery#continue_watching'
+        get 'recently_played', to: 'discovery#recently_played'
+      end
+      
+      namespace :analytics do
+        get 'stats', to: 'analytics#stats'
+        get 'wrapped', to: 'analytics#wrapped'
+        get 'history', to: 'analytics#history'
+      end
+      
       # Artists
       resources :artists, only: [:index, :show, :update] do
         member do
@@ -161,9 +189,18 @@ Rails.application.routes.draw do
       
       # Playlists
       resources :playlists do
+        collection do
+          get :discover
+          get :collaborative
+          get :community
+        end
         member do
           post 'add_track/:track_id', to: 'playlists#add_track'
           delete 'remove_track/:track_id', to: 'playlists#remove_track'
+          post :collaborators, to: 'playlists#add_collaborator'
+          delete 'collaborators/:user_id', to: 'playlists#remove_collaborator'
+          post :follow
+          delete :follow, to: 'playlists#unfollow'
         end
       end
       

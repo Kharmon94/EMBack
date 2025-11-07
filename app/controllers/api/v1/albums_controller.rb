@@ -19,11 +19,27 @@ module Api
         # Search
         @albums = @albums.where('title ILIKE ?', "%#{params[:q]}%") if params[:q].present?
         
+        # ADVANCED FILTERS
+        # Genre filter
+        @albums = @albums.joins(:album_genres).where(album_genres: { genre_id: params[:genre_ids] }) if params[:genre_ids].present?
+        
+        # Release date range
+        @albums = @albums.where('release_date >= ?', params[:from_date]) if params[:from_date].present?
+        @albums = @albums.where('release_date <= ?', params[:to_date]) if params[:to_date].present?
+        
+        # Price range
+        @albums = @albums.where('price >= ?', params[:min_price]) if params[:min_price].present?
+        @albums = @albums.where('price <= ?', params[:max_price]) if params[:max_price].present?
+        
+        # Artist verification
+        @albums = @albums.joins(:artist).where(artists: { verified: true }) if params[:verified_only] == 'true'
+        
         # Sort
         @albums = case params[:sort]
-                  when 'streams' then @albums.left_joins(tracks: :streams).group(:id).order('COUNT(streams.id) DESC')
+                  when 'streams' then @albums.left_joins(tracks: :streams).group('albums.id').order('COUNT(streams.id) DESC')
                   when 'recent' then @albums.order(created_at: :desc)
                   when 'release_date' then @albums.order(release_date: :desc)
+                  when 'popular' then @albums.left_joins(tracks: :streams).group('albums.id').order('COUNT(streams.id) DESC')
                   else @albums.order(title: :asc)
                   end
         

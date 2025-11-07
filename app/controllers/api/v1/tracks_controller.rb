@@ -18,6 +18,31 @@ module Api
         # Filter explicit content
         @tracks = @tracks.clean if params[:clean] == 'true'
         
+        # ADVANCED FILTERS
+        # Genre filter
+        @tracks = @tracks.joins(:track_genres).where(track_genres: { genre_id: params[:genre_ids] }) if params[:genre_ids].present?
+        
+        # Mood filter
+        @tracks = @tracks.joins(:track_moods).where(track_moods: { mood_id: params[:mood_ids] }) if params[:mood_ids].present?
+        
+        # Duration range (in seconds)
+        @tracks = @tracks.where('duration >= ?', params[:min_duration]) if params[:min_duration].present?
+        @tracks = @tracks.where('duration <= ?', params[:max_duration]) if params[:max_duration].present?
+        
+        # Access tier filter
+        @tracks = @tracks.where(access_tier: params[:access_tier]) if params[:access_tier].present?
+        
+        # Artist verification
+        @tracks = @tracks.joins(album: :artist).where(artists: { verified: true }) if params[:verified_only] == 'true'
+        
+        # Sort
+        @tracks = case params[:sort]
+                 when 'popular' then @tracks.joins(:streams).group('tracks.id').order('COUNT(streams.id) DESC')
+                 when 'recent' then @tracks.order(created_at: :desc)
+                 when 'title' then @tracks.order(title: :asc)
+                 else @tracks.order(created_at: :desc)
+                 end
+        
         @paginated = paginate(@tracks)
         
         render json: {

@@ -25,6 +25,28 @@ module Api
         # Search
         @events = @events.where('title ILIKE ? OR venue ILIKE ?', "%#{params[:q]}%", "%#{params[:q]}%") if params[:q].present?
         
+        # ADVANCED FILTERS
+        # Genre filter
+        @events = @events.joins(:event_genres).where(event_genres: { genre_id: params[:genre_ids] }) if params[:genre_ids].present?
+        
+        # Location filter
+        @events = @events.where('location ILIKE ?', "%#{params[:location]}%") if params[:location].present?
+        
+        # Date range
+        @events = @events.where('start_time >= ?', params[:from_date]) if params[:from_date].present?
+        @events = @events.where('start_time <= ?', params[:to_date]) if params[:to_date].present?
+        
+        # Price range (based on minimum ticket price)
+        if params[:min_price].present? || params[:max_price].present?
+          @events = @events.joins(:ticket_tiers)
+                          .group('events.id')
+          @events = @events.having('MIN(ticket_tiers.price) >= ?', params[:min_price].to_f) if params[:min_price].present?
+          @events = @events.having('MIN(ticket_tiers.price) <= ?', params[:max_price].to_f) if params[:max_price].present?
+        end
+        
+        # Ticket availability
+        @events = @events.joins(:ticket_tiers).where('ticket_tiers.sold < ticket_tiers.total') if params[:tickets_available] == 'true'
+        
         # Sort
         @events = @events.order(start_time: params[:sort_desc] == 'true' ? :desc : :asc)
         
