@@ -378,6 +378,18 @@ Rails.application.routes.draw do
       
       # Search
       get 'search', to: 'search#index'
+      
+      # Pre-saves
+      resources :pre_saves, only: [:index, :create, :destroy]
+      
+      # Playlist Folders
+      resources :playlist_folders do
+        member do
+          post 'reorder'
+          post 'add_playlist/:playlist_id', to: 'playlist_folders#add_playlist'
+          delete 'remove_playlist/:playlist_id', to: 'playlist_folders#remove_playlist'
+        end
+      end
     end
   end
   

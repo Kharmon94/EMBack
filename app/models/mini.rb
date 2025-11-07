@@ -5,6 +5,8 @@ class Mini < ApplicationRecord
   has_many :comments, as: :commentable, dependent: :destroy
   has_many :likes, as: :likeable, dependent: :destroy
   has_many :shares, as: :shareable, dependent: :destroy
+  has_many :mini_genres, dependent: :destroy
+  has_many :genres, through: :mini_genres
   
   # Access tiers (same as tracks/videos)
   enum :access_tier, {

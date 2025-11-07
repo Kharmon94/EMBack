@@ -1,5 +1,6 @@
 class Playlist < ApplicationRecord
   belongs_to :user
+  belongs_to :playlist_folder, optional: true
   has_many :playlist_tracks, -> { order(position: :asc) }, dependent: :destroy
   has_many :tracks, through: :playlist_tracks
   has_many :playlist_collaborators, dependent: :destroy

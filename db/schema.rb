@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.index ["artist_token_id"], name: "index_airdrops_on_artist_token_id"
   end
 
+  create_table "album_genres", force: :cascade do |t|
+    t.bigint "album_id", null: false
+    t.bigint "genre_id", null: false
+    t.boolean "primary", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["album_id", "genre_id"], name: "index_album_genres_on_album_id_and_genre_id", unique: true
+    t.index ["album_id"], name: "index_album_genres_on_album_id"
+    t.index ["genre_id"], name: "index_album_genres_on_genre_id"
+  end
+
   create_table "albums", force: :cascade do |t|
     t.bigint "artist_id", null: false
     t.string "title"
@@ -53,8 +64,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "likes_count", default: 0, null: false
+    t.tsvector "search_vector"
     t.index ["artist_id"], name: "index_albums_on_artist_id"
     t.index ["likes_count"], name: "index_albums_on_likes_count"
+    t.index ["search_vector"], name: "index_albums_on_search_vector", using: :gin
   end
 
   create_table "artist_tokens", force: :cascade do |t|
@@ -86,7 +99,24 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.string "instagram_handle"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.tsvector "search_vector"
+    t.index ["search_vector"], name: "index_artists_on_search_vector", using: :gin
     t.index ["user_id"], name: "index_artists_on_user_id"
+  end
+
+  create_table "cart_orders", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.decimal "total_amount", precision: 10, scale: 2, null: false
+    t.integer "status", default: 0, null: false
+    t.string "transaction_signature"
+    t.string "blockchain_receipt_url"
+    t.jsonb "shipping_address", default: {}
+    t.integer "payment_status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_cart_orders_on_status"
+    t.index ["transaction_signature"], name: "index_cart_orders_on_transaction_signature"
+    t.index ["user_id"], name: "index_cart_orders_on_user_id"
   end
 
   create_table "comments", force: :cascade do |t|
@@ -129,6 +159,20 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.index ["order_id"], name: "index_conversations_on_order_id"
   end
 
+  create_table "curator_profiles", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "display_name"
+    t.text "bio"
+    t.string "specialty"
+    t.boolean "verified", default: false
+    t.integer "followers_count", default: 0
+    t.integer "playlists_count", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_curator_profiles_on_user_id"
+    t.index ["verified"], name: "index_curator_profiles_on_verified"
+  end
+
   create_table "direct_messages", force: :cascade do |t|
     t.bigint "conversation_id", null: false
     t.bigint "user_id", null: false
@@ -160,6 +204,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.index ["status"], name: "index_dividends_on_status"
   end
 
+  create_table "event_genres", force: :cascade do |t|
+    t.bigint "event_id", null: false
+    t.bigint "genre_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_id", "genre_id"], name: "index_event_genres_on_event_id_and_genre_id", unique: true
+    t.index ["event_id"], name: "index_event_genres_on_event_id"
+    t.index ["genre_id"], name: "index_event_genres_on_genre_id"
+  end
+
   create_table "events", force: :cascade do |t|
     t.bigint "artist_id", null: false
     t.string "title"
@@ -172,7 +226,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.integer "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.tsvector "search_vector"
     t.index ["artist_id"], name: "index_events_on_artist_id"
+    t.index ["search_vector"], name: "index_events_on_search_vector", using: :gin
   end
 
   create_table "fan_pass_nfts", force: :cascade do |t|
@@ -224,9 +280,28 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.bigint "followable_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "friendship", default: false
+    t.string "status", default: "active"
     t.index ["followable_type", "followable_id"], name: "index_follows_on_followable"
+    t.index ["friendship"], name: "index_follows_on_friendship"
+    t.index ["status"], name: "index_follows_on_status"
     t.index ["user_id", "followable_type", "followable_id"], name: "index_follows_on_user_and_followable", unique: true
     t.index ["user_id"], name: "index_follows_on_user_id"
+  end
+
+  create_table "genres", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.text "description"
+    t.bigint "parent_genre_id"
+    t.integer "position", default: 0
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_genres_on_active"
+    t.index ["parent_genre_id", "position"], name: "index_genres_on_parent_genre_id_and_position"
+    t.index ["parent_genre_id"], name: "index_genres_on_parent_genre_id"
+    t.index ["slug"], name: "index_genres_on_slug", unique: true
   end
 
   create_table "jwt_denylists", force: :cascade do |t|
@@ -262,6 +337,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.index ["artist_token_id"], name: "index_liquidity_pools_on_artist_token_id"
   end
 
+  create_table "listening_histories", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "track_id", null: false
+    t.bigint "album_id"
+    t.bigint "playlist_id"
+    t.integer "duration_played"
+    t.boolean "completed", default: false
+    t.string "source"
+    t.string "device_type"
+    t.json "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["album_id"], name: "index_listening_histories_on_album_id"
+    t.index ["completed"], name: "index_listening_histories_on_completed"
+    t.index ["playlist_id"], name: "index_listening_histories_on_playlist_id"
+    t.index ["track_id", "created_at"], name: "index_listening_histories_on_track_id_and_created_at"
+    t.index ["track_id"], name: "index_listening_histories_on_track_id"
+    t.index ["user_id", "created_at"], name: "index_listening_histories_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_listening_histories_on_user_id"
+  end
+
   create_table "livestreams", force: :cascade do |t|
     t.bigint "artist_id", null: false
     t.string "title"
@@ -280,7 +376,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "started_at"
     t.datetime "ended_at"
     t.integer "likes_count", default: 0, null: false
+    t.tsvector "search_vector"
     t.index ["artist_id"], name: "index_livestreams_on_artist_id"
+    t.index ["search_vector"], name: "index_livestreams_on_search_vector", using: :gin
     t.index ["stream_key"], name: "index_livestreams_on_stream_key", unique: true
   end
 
@@ -320,10 +418,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.boolean "limited_edition", default: false
     t.integer "edition_size"
     t.integer "edition_number"
+    t.tsvector "search_vector"
     t.index ["artist_id"], name: "index_merch_items_on_artist_id"
     t.index ["featured"], name: "index_merch_items_on_featured"
     t.index ["product_category_id"], name: "index_merch_items_on_product_category_id"
+    t.index ["search_vector"], name: "index_merch_items_on_search_vector", using: :gin
     t.index ["sku"], name: "index_merch_items_on_sku", unique: true
+  end
+
+  create_table "mini_moods", force: :cascade do |t|
+    t.bigint "mini_id", null: false
+    t.bigint "mood_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mini_id", "mood_id"], name: "index_mini_moods_on_mini_id_and_mood_id", unique: true
+    t.index ["mini_id"], name: "index_mini_moods_on_mini_id"
+    t.index ["mood_id"], name: "index_mini_moods_on_mood_id"
   end
 
   create_table "mini_views", force: :cascade do |t|
@@ -361,14 +471,29 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "published_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.tsvector "search_vector"
     t.index ["access_tier"], name: "index_minis_on_access_tier"
     t.index ["artist_id", "published"], name: "index_minis_on_artist_id_and_published"
     t.index ["artist_id"], name: "index_minis_on_artist_id"
     t.index ["likes_count"], name: "index_minis_on_likes_count"
     t.index ["published_at"], name: "index_minis_on_published_at"
+    t.index ["search_vector"], name: "index_minis_on_search_vector", using: :gin
     t.index ["shares_count"], name: "index_minis_on_shares_count"
     t.index ["views_count"], name: "index_minis_on_views_count"
     t.check_constraint "duration > 0 AND duration <= 120", name: "mini_duration_limit"
+  end
+
+  create_table "moods", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.text "description"
+    t.string "color_code"
+    t.string "icon"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_moods_on_active"
+    t.index ["slug"], name: "index_moods_on_slug", unique: true
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -413,6 +538,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "estimated_delivery"
     t.string "blockchain_receipt_url"
     t.text "notes"
+    t.bigint "cart_order_id"
+    t.decimal "shipping_fee", precision: 10, scale: 2, default: "0.0"
+    t.decimal "seller_amount", precision: 10, scale: 2, default: "0.0"
+    t.index ["cart_order_id"], name: "index_orders_on_cart_order_id"
     t.index ["tracking_number"], name: "index_orders_on_tracking_number"
     t.index ["user_id"], name: "index_orders_on_user_id"
   end
@@ -443,6 +572,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "playlist_collaborators", force: :cascade do |t|
+    t.bigint "playlist_id", null: false
+    t.bigint "user_id", null: false
+    t.string "role", default: "editor"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["playlist_id", "user_id"], name: "index_playlist_collaborators_on_playlist_id_and_user_id", unique: true
+    t.index ["playlist_id"], name: "index_playlist_collaborators_on_playlist_id"
+    t.index ["user_id"], name: "index_playlist_collaborators_on_user_id"
+  end
+
+  create_table "playlist_follows", force: :cascade do |t|
+    t.bigint "playlist_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["playlist_id", "user_id"], name: "index_playlist_follows_on_playlist_id_and_user_id", unique: true
+    t.index ["playlist_id"], name: "index_playlist_follows_on_playlist_id"
+    t.index ["user_id"], name: "index_playlist_follows_on_user_id"
+  end
+
   create_table "playlist_tracks", force: :cascade do |t|
     t.bigint "playlist_id", null: false
     t.bigint "track_id", null: false
@@ -460,6 +610,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.boolean "is_public"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.tsvector "search_vector"
+    t.boolean "collaborative", default: false
+    t.boolean "public", default: false
+    t.integer "followers_count", default: 0
+    t.index ["search_vector"], name: "index_playlists_on_search_vector", using: :gin
     t.index ["user_id"], name: "index_playlists_on_user_id"
   end
 
@@ -514,6 +669,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "updated_at", null: false
     t.index ["purchasable_type", "purchasable_id"], name: "index_purchases_on_purchasable"
     t.index ["user_id"], name: "index_purchases_on_user_id"
+  end
+
+  create_table "recently_playeds", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "playable_type", null: false
+    t.bigint "playable_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["playable_type", "playable_id"], name: "index_recently_playeds_on_playable"
+    t.index ["playable_type", "playable_id"], name: "index_recently_playeds_on_playable_type_and_playable_id"
+    t.index ["user_id", "created_at"], name: "index_recently_playeds_on_user_id_and_created_at"
+    t.index ["user_id", "playable_type", "playable_id"], name: "index_recently_played_unique", unique: true
+    t.index ["user_id"], name: "index_recently_playeds_on_user_id"
   end
 
   create_table "recently_viewed_items", force: :cascade do |t|
@@ -590,6 +758,35 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.index ["verified_purchase"], name: "index_reviews_on_verified_purchase"
   end
 
+  create_table "search_histories", force: :cascade do |t|
+    t.bigint "user_id"
+    t.string "query", null: false
+    t.string "search_type"
+    t.integer "results_count"
+    t.boolean "clicked_result", default: false
+    t.string "clicked_result_type"
+    t.bigint "clicked_result_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["query"], name: "index_search_histories_on_query"
+    t.index ["user_id", "created_at"], name: "index_search_histories_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_search_histories_on_user_id"
+  end
+
+  create_table "shares", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "shareable_type", null: false
+    t.bigint "shareable_id", null: false
+    t.string "share_type", null: false
+    t.json "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["share_type"], name: "index_shares_on_share_type"
+    t.index ["shareable_type", "shareable_id"], name: "index_shares_on_shareable"
+    t.index ["shareable_type", "shareable_id"], name: "index_shares_on_shareable_type_and_shareable_id"
+    t.index ["user_id"], name: "index_shares_on_user_id"
+  end
+
   create_table "stream_messages", force: :cascade do |t|
     t.bigint "livestream_id", null: false
     t.bigint "user_id", null: false
@@ -645,6 +842,28 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.index ["user_id"], name: "index_tickets_on_user_id"
   end
 
+  create_table "track_genres", force: :cascade do |t|
+    t.bigint "track_id", null: false
+    t.bigint "genre_id", null: false
+    t.boolean "primary", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["genre_id"], name: "index_track_genres_on_genre_id"
+    t.index ["primary"], name: "index_track_genres_on_primary"
+    t.index ["track_id", "genre_id"], name: "index_track_genres_on_track_id_and_genre_id", unique: true
+    t.index ["track_id"], name: "index_track_genres_on_track_id"
+  end
+
+  create_table "track_moods", force: :cascade do |t|
+    t.bigint "track_id", null: false
+    t.bigint "mood_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mood_id"], name: "index_track_moods_on_mood_id"
+    t.index ["track_id", "mood_id"], name: "index_track_moods_on_track_id_and_mood_id", unique: true
+    t.index ["track_id"], name: "index_track_moods_on_track_id"
+  end
+
   create_table "tracks", force: :cascade do |t|
     t.bigint "album_id", null: false
     t.string "title"
@@ -660,10 +879,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.integer "access_tier", default: 0, null: false
     t.integer "free_quality", default: 0, null: false
     t.integer "likes_count", default: 0, null: false
+    t.tsvector "search_vector"
     t.index ["access_tier"], name: "index_tracks_on_access_tier"
     t.index ["album_id", "access_tier"], name: "index_tracks_on_album_id_and_access_tier"
     t.index ["album_id"], name: "index_tracks_on_album_id"
     t.index ["likes_count"], name: "index_tracks_on_likes_count"
+    t.index ["search_vector"], name: "index_tracks_on_search_vector", using: :gin
   end
 
   create_table "trades", force: :cascade do |t|
@@ -677,6 +898,33 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "updated_at", null: false
     t.index ["artist_token_id"], name: "index_trades_on_artist_token_id"
     t.index ["user_id"], name: "index_trades_on_user_id"
+  end
+
+  create_table "user_activities", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "activityable_type", null: false
+    t.bigint "activityable_id", null: false
+    t.string "activity_type", null: false
+    t.json "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["activity_type"], name: "index_user_activities_on_activity_type"
+    t.index ["activityable_type", "activityable_id"], name: "index_user_activities_on_activityable"
+    t.index ["activityable_type", "activityable_id"], name: "index_user_activities_on_activityable_type_and_activityable_id"
+    t.index ["user_id", "created_at"], name: "index_user_activities_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_user_activities_on_user_id"
+  end
+
+  create_table "user_genre_preferences", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "genre_id", null: false
+    t.integer "preference_score", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["genre_id"], name: "index_user_genre_preferences_on_genre_id"
+    t.index ["user_id", "genre_id"], name: "index_user_genre_preferences_on_user_id_and_genre_id", unique: true
+    t.index ["user_id", "preference_score"], name: "index_user_genre_preferences_on_user_id_and_preference_score"
+    t.index ["user_id"], name: "index_user_genre_preferences_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -716,6 +964,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.index ["wallet_address"], name: "index_users_on_wallet_address", unique: true
   end
 
+  create_table "video_genres", force: :cascade do |t|
+    t.bigint "video_id", null: false
+    t.bigint "genre_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["genre_id"], name: "index_video_genres_on_genre_id"
+    t.index ["video_id", "genre_id"], name: "index_video_genres_on_video_id_and_genre_id", unique: true
+    t.index ["video_id"], name: "index_video_genres_on_video_id"
+  end
+
   create_table "video_views", force: :cascade do |t|
     t.bigint "video_id", null: false
     t.bigint "user_id"
@@ -749,12 +1007,34 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
     t.datetime "published_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.tsvector "search_vector"
     t.index ["access_tier"], name: "index_videos_on_access_tier"
     t.index ["artist_id", "published"], name: "index_videos_on_artist_id_and_published"
     t.index ["artist_id"], name: "index_videos_on_artist_id"
     t.index ["likes_count"], name: "index_videos_on_likes_count"
     t.index ["published_at"], name: "index_videos_on_published_at"
+    t.index ["search_vector"], name: "index_videos_on_search_vector", using: :gin
     t.index ["views_count"], name: "index_videos_on_views_count"
+  end
+
+  create_table "view_histories", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "viewable_type", null: false
+    t.bigint "viewable_id", null: false
+    t.integer "duration_watched"
+    t.integer "total_duration"
+    t.boolean "completed", default: false
+    t.integer "watch_percentage"
+    t.string "source"
+    t.string "device_type"
+    t.json "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["completed"], name: "index_view_histories_on_completed"
+    t.index ["user_id", "created_at"], name: "index_view_histories_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_view_histories_on_user_id"
+    t.index ["viewable_type", "viewable_id"], name: "index_view_histories_on_viewable"
+    t.index ["viewable_type", "viewable_id"], name: "index_view_histories_on_viewable_type_and_viewable_id"
   end
 
   create_table "wishlist_items", force: :cascade do |t|
@@ -787,40 +1067,59 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
   add_foreign_key "airdrop_claims", "users"
   add_foreign_key "airdrops", "artist_tokens"
   add_foreign_key "airdrops", "artists"
+  add_foreign_key "album_genres", "albums"
+  add_foreign_key "album_genres", "genres"
   add_foreign_key "albums", "artists"
   add_foreign_key "artist_tokens", "artists"
   add_foreign_key "artists", "users"
+  add_foreign_key "cart_orders", "users"
   add_foreign_key "comments", "comments", column: "parent_id"
   add_foreign_key "comments", "users"
   add_foreign_key "conversation_participants", "conversations"
   add_foreign_key "conversation_participants", "users"
   add_foreign_key "conversations", "orders"
+  add_foreign_key "curator_profiles", "users"
   add_foreign_key "direct_messages", "conversations"
   add_foreign_key "direct_messages", "users"
   add_foreign_key "dividends", "fan_pass_nfts"
+  add_foreign_key "event_genres", "events"
+  add_foreign_key "event_genres", "genres"
   add_foreign_key "events", "artists"
   add_foreign_key "fan_pass_nfts", "fan_passes"
   add_foreign_key "fan_pass_nfts", "users"
   add_foreign_key "fan_passes", "artists"
   add_foreign_key "follows", "users"
+  add_foreign_key "genres", "genres", column: "parent_genre_id"
   add_foreign_key "likes", "users"
   add_foreign_key "liquidity_pools", "artist_tokens"
+  add_foreign_key "listening_histories", "albums"
+  add_foreign_key "listening_histories", "playlists"
+  add_foreign_key "listening_histories", "tracks"
+  add_foreign_key "listening_histories", "users"
   add_foreign_key "livestreams", "artists"
   add_foreign_key "merch_item_tags", "merch_items"
   add_foreign_key "merch_item_tags", "product_tags"
   add_foreign_key "merch_items", "artists"
   add_foreign_key "merch_items", "product_categories"
+  add_foreign_key "mini_moods", "minis"
+  add_foreign_key "mini_moods", "moods"
   add_foreign_key "mini_views", "minis"
   add_foreign_key "mini_views", "users"
   add_foreign_key "minis", "artists"
   add_foreign_key "notifications", "users"
   add_foreign_key "order_items", "orders"
+  add_foreign_key "orders", "cart_orders"
   add_foreign_key "orders", "users"
+  add_foreign_key "playlist_collaborators", "playlists"
+  add_foreign_key "playlist_collaborators", "users"
+  add_foreign_key "playlist_follows", "playlists"
+  add_foreign_key "playlist_follows", "users"
   add_foreign_key "playlist_tracks", "playlists"
   add_foreign_key "playlist_tracks", "tracks"
   add_foreign_key "playlists", "users"
   add_foreign_key "product_variants", "merch_items"
   add_foreign_key "purchases", "users"
+  add_foreign_key "recently_playeds", "users"
   add_foreign_key "recently_viewed_items", "merch_items"
   add_foreign_key "recently_viewed_items", "users"
   add_foreign_key "reports", "users"
@@ -830,6 +1129,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
   add_foreign_key "reviews", "merch_items"
   add_foreign_key "reviews", "orders"
   add_foreign_key "reviews", "users"
+  add_foreign_key "search_histories", "users"
+  add_foreign_key "shares", "users"
   add_foreign_key "stream_messages", "livestreams"
   add_foreign_key "stream_messages", "users"
   add_foreign_key "streams", "tracks"
@@ -837,12 +1138,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000018) do
   add_foreign_key "ticket_tiers", "events"
   add_foreign_key "tickets", "ticket_tiers"
   add_foreign_key "tickets", "users"
+  add_foreign_key "track_genres", "genres"
+  add_foreign_key "track_genres", "tracks"
+  add_foreign_key "track_moods", "moods"
+  add_foreign_key "track_moods", "tracks"
   add_foreign_key "tracks", "albums"
   add_foreign_key "trades", "artist_tokens"
   add_foreign_key "trades", "users"
+  add_foreign_key "user_activities", "users"
+  add_foreign_key "user_genre_preferences", "genres"
+  add_foreign_key "user_genre_preferences", "users"
+  add_foreign_key "video_genres", "genres"
+  add_foreign_key "video_genres", "videos"
   add_foreign_key "video_views", "users"
   add_foreign_key "video_views", "videos"
   add_foreign_key "videos", "artists"
+  add_foreign_key "view_histories", "users"
   add_foreign_key "wishlist_items", "merch_items"
   add_foreign_key "wishlist_items", "product_variants"
   add_foreign_key "wishlist_items", "wishlists"

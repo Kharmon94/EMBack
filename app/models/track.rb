@@ -12,6 +12,7 @@ class Track < ApplicationRecord
   has_many :genres, through: :track_genres
   has_many :track_moods, dependent: :destroy
   has_many :moods, through: :track_moods
+  has_many :pre_saves, as: :pre_saveable, dependent: :destroy
   
   # ACCESS TIERS - Artist can toggle per track
   enum :access_tier, {

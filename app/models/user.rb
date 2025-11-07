@@ -42,6 +42,8 @@ class User < ApplicationRecord
   has_many :view_histories, dependent: :destroy
   has_many :search_histories, dependent: :destroy
   has_many :recently_playeds, dependent: :destroy
+  has_many :pre_saves, dependent: :destroy
+  has_many :playlist_folders, dependent: :destroy
   
   # Messaging preferences enum
   enum :accept_messages, { everyone: 0, following_only: 1, no_one: 2 }, default: :everyone
