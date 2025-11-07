@@ -323,8 +323,5 @@ Devise.setup do |config|
     ]
     jwt.expiration_time = 24.hours.to_i
     jwt.aud_header = 'JWT_AUD'
-    
-    # Explicitly set the User model as the resource
-    jwt.mappings = { user: User }
   end
 end
