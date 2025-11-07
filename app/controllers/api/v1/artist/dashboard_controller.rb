@@ -65,8 +65,10 @@ module Api
           # Fan passes: price * number of minted NFTs
           fan_pass_sales = artist.fan_passes.joins(:fan_pass_nfts).sum('fan_passes.price')
           
-          # Merch: through order_items
-          merch_sales = artist.merch_items.joins(:order_items).sum('order_items.price * order_items.quantity')
+          # Merch: through order_items (polymorphic orderable)
+          merch_sales = OrderItem.joins("INNER JOIN merch_items ON merch_items.id = order_items.orderable_id AND order_items.orderable_type = 'MerchItem'")
+                                 .where(merch_items: { artist_id: artist.id })
+                                 .sum('order_items.price * order_items.quantity')
           
           ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales
         end
@@ -90,8 +92,11 @@ module Api
           # Fan passes minted in the last month
           fan_pass_sales = artist.fan_passes.joins(:fan_pass_nfts).where('fan_pass_nfts.created_at > ?', start_date).sum('fan_passes.price')
           
-          # Merch sold in the last month
-          merch_sales = artist.merch_items.joins(:order_items).where('order_items.created_at > ?', start_date).sum('order_items.price * order_items.quantity')
+          # Merch sold in the last month (polymorphic orderable)
+          merch_sales = OrderItem.joins("INNER JOIN merch_items ON merch_items.id = order_items.orderable_id AND order_items.orderable_type = 'MerchItem'")
+                                 .where(merch_items: { artist_id: artist.id })
+                                 .where('order_items.created_at > ?', start_date)
+                                 .sum('order_items.price * order_items.quantity')
           
           ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales
         end
