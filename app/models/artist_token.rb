@@ -12,8 +12,22 @@ class ArtistToken < ApplicationRecord
   scope :graduated, -> { where(graduated: true) }
   scope :active, -> { where(graduated: false) }
   
+  def current_price
+    # Return current bonding curve price or last trade price
+    price_usd || trades.order(created_at: :desc).first&.price || 0
+  end
+  
+  def market_cap
+    (supply.to_f * current_price.to_f) if supply
+  end
+  
   def market_cap_usd
     (supply.to_f * price_usd.to_f) if supply && price_usd
+  end
+  
+  def holders_count
+    # Count unique users who have bought this token
+    trades.where(trade_type: :buy).select(:user_id).distinct.count
   end
   
   def ready_to_graduate?
