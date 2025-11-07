@@ -56,9 +56,10 @@ module Api
           # Album-level purchases
           album_sales = artist.albums.joins(:purchases).sum('purchases.price_paid')
           
-          # Individual track purchases (tracks through albums)
-          track_sales = Purchase.joins(purchasable: :album)
-                               .where(purchasable_type: 'Track', albums: { artist_id: artist.id })
+          # Individual track purchases (join through tracks -> albums to get artist)
+          track_sales = Purchase.joins("INNER JOIN tracks ON tracks.id = purchases.purchasable_id AND purchases.purchasable_type = 'Track'")
+                               .joins("INNER JOIN albums ON albums.id = tracks.album_id")
+                               .where(albums: { artist_id: artist.id })
                                .sum('purchases.price_paid')
           
           # Fan passes: price * number of minted NFTs
@@ -79,9 +80,10 @@ module Api
           # Album-level purchases in the last month
           album_sales = artist.albums.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_paid')
           
-          # Individual track purchases in the last month
-          track_sales = Purchase.joins(purchasable: :album)
-                               .where(purchasable_type: 'Track', albums: { artist_id: artist.id })
+          # Individual track purchases in the last month (join through tracks -> albums to get artist)
+          track_sales = Purchase.joins("INNER JOIN tracks ON tracks.id = purchases.purchasable_id AND purchases.purchasable_type = 'Track'")
+                               .joins("INNER JOIN albums ON albums.id = tracks.album_id")
+                               .where(albums: { artist_id: artist.id })
                                .where('purchases.created_at > ?', start_date)
                                .sum('purchases.price_paid')
           
