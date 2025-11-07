@@ -31,6 +31,17 @@ class User < ApplicationRecord
   has_many :conversation_participants, dependent: :destroy
   has_many :conversations, through: :conversation_participants
   has_many :direct_messages, dependent: :destroy
+  has_many :shares, dependent: :destroy
+  has_many :user_activities, dependent: :destroy
+  has_one :curator_profile, dependent: :destroy
+  has_many :playlist_collaborations, class_name: 'PlaylistCollaborator', dependent: :destroy
+  has_many :collaborative_playlists, through: :playlist_collaborations, source: :playlist
+  has_many :playlist_follows, dependent: :destroy
+  has_many :followed_playlists, through: :playlist_follows, source: :playlist
+  has_many :listening_histories, dependent: :destroy
+  has_many :view_histories, dependent: :destroy
+  has_many :search_histories, dependent: :destroy
+  has_many :recently_playeds, dependent: :destroy
   
   # Messaging preferences enum
   enum :accept_messages, { everyone: 0, following_only: 1, no_one: 2 }, default: :everyone

@@ -7,6 +7,11 @@ class Track < ApplicationRecord
   has_many :playlists, through: :playlist_tracks
   has_many :comments, as: :commentable, dependent: :destroy
   has_many :likes, as: :likeable, dependent: :destroy
+  has_many :shares, as: :shareable, dependent: :destroy
+  has_many :track_genres, dependent: :destroy
+  has_many :genres, through: :track_genres
+  has_many :track_moods, dependent: :destroy
+  has_many :moods, through: :track_moods
   
   # ACCESS TIERS - Artist can toggle per track
   enum :access_tier, {

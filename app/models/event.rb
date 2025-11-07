@@ -5,6 +5,7 @@ class Event < ApplicationRecord
   has_one :revenue_split, as: :splittable, dependent: :destroy
   has_many :comments, as: :commentable, dependent: :destroy
   has_many :likes, as: :likeable, dependent: :destroy
+  has_many :shares, as: :shareable, dependent: :destroy
   
   enum :status, { draft: 0, published: 1, ongoing: 2, completed: 3, cancelled: 4 }, default: :draft
   

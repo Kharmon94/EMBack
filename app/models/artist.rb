@@ -15,6 +15,7 @@ class Artist < ApplicationRecord
   has_many :fan_passes, dependent: :destroy
   has_many :airdrops, dependent: :destroy
   has_many :follows, as: :followable, dependent: :destroy
+  has_many :shares, as: :shareable, dependent: :destroy
   
   # Validations
   validates :name, presence: true

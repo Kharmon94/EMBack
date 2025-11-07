@@ -26,6 +26,7 @@ class Video < ApplicationRecord
   has_many :purchases, as: :purchasable, dependent: :destroy
   has_many :comments, as: :commentable, dependent: :destroy
   has_many :likes, as: :likeable, dependent: :destroy
+  has_many :shares, as: :shareable, dependent: :destroy
   
   # Access tiers (same as tracks)
   enum :access_tier, {

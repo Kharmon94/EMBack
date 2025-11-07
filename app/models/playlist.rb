@@ -2,12 +2,20 @@ class Playlist < ApplicationRecord
   belongs_to :user
   has_many :playlist_tracks, -> { order(position: :asc) }, dependent: :destroy
   has_many :tracks, through: :playlist_tracks
+  has_many :playlist_collaborators, dependent: :destroy
+  has_many :collaborators, through: :playlist_collaborators, source: :user
+  has_many :playlist_follows, dependent: :destroy
+  has_many :followers, through: :playlist_follows, source: :user
+  has_many :comments, as: :commentable, dependent: :destroy
+  has_many :likes, as: :likeable, dependent: :destroy
   
   validates :title, presence: true
   validates :is_public, inclusion: { in: [true, false] }
   
   scope :public_playlists, -> { where(is_public: true) }
   scope :private_playlists, -> { where(is_public: false) }
+  scope :collaborative, -> { where(collaborative: true) }
+  scope :community, -> { public_playlists.order(followers_count: :desc) }
   
   # Full-text search
   scope :search, ->(query) {
@@ -25,6 +33,19 @@ class Playlist < ApplicationRecord
   
   def total_duration
     tracks.sum(:duration)
+  end
+  
+  def can_edit?(user)
+    return true if self.user_id == user.id
+    return false unless collaborative
+    playlist_collaborators.where(user: user, role: ['owner', 'editor']).exists?
+  end
+  
+  def can_view?(user)
+    return true if is_public
+    return true if self.user_id == user.id
+    return false unless collaborative
+    playlist_collaborators.where(user: user).exists?
   end
   
   private
