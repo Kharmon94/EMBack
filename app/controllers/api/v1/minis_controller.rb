@@ -78,6 +78,26 @@ module Api
         @mini = current_artist.minis.build(mini_params)
         
         if @mini.save
+          ipfs_service = IpfsService.new
+
+          # Upload video file to IPFS if provided
+          if params[:video_file].present?
+            upload_result = ipfs_service.upload_file(
+              params[:video_file].tempfile.path,
+              { name: "#{@mini.title} - Mini", type: 'mini' }
+            )
+            @mini.update!(video_cid: upload_result[:cid], video_url: upload_result[:url])
+          end
+
+          # Upload thumbnail to IPFS if provided
+          if params[:thumbnail_file].present?
+            thumb_result = ipfs_service.upload_file(
+              params[:thumbnail_file].tempfile.path,
+              { name: "#{@mini.title} - Thumbnail", type: 'thumbnail' }
+            )
+            @mini.update!(thumbnail_url: thumb_result[:url])
+          end
+
           render json: {
             mini: detailed_mini_json(@mini),
             message: 'Mini created successfully'
