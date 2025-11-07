@@ -70,7 +70,7 @@ module Api
                                  .where(merch_items: { artist_id: artist.id })
                                  .sum('order_items.price * order_items.quantity')
           
-          ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales
+          (ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales).to_f
         end
         
         def calculate_month_revenue(artist)
@@ -98,7 +98,7 @@ module Api
                                  .where('order_items.created_at > ?', start_date)
                                  .sum('order_items.price * order_items.quantity')
           
-          ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales
+          (ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales).to_f
         end
         
         def recent_activity(artist)
