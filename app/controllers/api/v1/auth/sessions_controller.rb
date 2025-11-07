@@ -73,11 +73,17 @@ module Api
           email = params[:email]
           password = params[:password]
           
+          # Log for debugging
+          Rails.logger.info "Sign in attempt - Email present: #{email.present?}, Password present: #{password.present?}"
+          
           unless email && password
             return render json: { error: 'Email and password required' }, status: :unprocessable_entity
           end
           
-          user = User.find_by(email: email)
+          # Case-insensitive email lookup
+          user = User.where('LOWER(email) = ?', email.downcase).first
+          
+          Rails.logger.info "User found: #{user.present?}, Email searched: #{email}"
           
           unless user
             return render json: { error: 'User not found. Please sign up first.' }, status: :not_found
