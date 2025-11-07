@@ -104,17 +104,22 @@ module Api
         def recent_activity(artist)
           activities = []
           
-          # Recent purchases
-          Purchase.where(album_id: artist.albums.pluck(:id))
-            .or(Purchase.where(fan_pass_id: artist.fan_passes.pluck(:id)))
+          # Recent purchases (polymorphic - albums, tracks, fan passes)
+          album_purchases = Purchase.where(purchasable_type: 'Album', purchasable_id: artist.albums.pluck(:id))
+          track_purchases = Purchase.joins("INNER JOIN tracks ON tracks.id = purchases.purchasable_id AND purchases.purchasable_type = 'Track'")
+                                   .joins("INNER JOIN albums ON albums.id = tracks.album_id")
+                                   .where(albums: { artist_id: artist.id })
+          fan_pass_purchases = Purchase.where(purchasable_type: 'FanPass', purchasable_id: artist.fan_passes.pluck(:id))
+          
+          Purchase.from("(#{album_purchases.to_sql} UNION #{track_purchases.to_sql} UNION #{fan_pass_purchases.to_sql}) AS purchases")
             .order(created_at: :desc)
             .limit(5)
             .each do |purchase|
               activities << {
                 type: 'purchase',
-                description: purchase.album_id ? "Album purchased: #{purchase.album.title}" : "Fan pass purchased: #{purchase.fan_pass.name}",
-                user: purchase.user.email || purchase.user.wallet_address,
-                amount: purchase.price_sol,
+                description: "#{purchase.purchasable_type} purchased",
+                user: purchase.user_id.to_s, # Will need to fetch user separately if needed
+                amount: purchase.price_paid,
                 created_at: purchase.created_at
               }
             end
