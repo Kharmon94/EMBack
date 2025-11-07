@@ -15,6 +15,70 @@ puts "✅ Database cleaned!"
 puts "\n🌱 Seeding database...\n\n"
 
 # ============================================================
+# GENRES & MOODS
+# ============================================================
+puts "🎵 Creating genres and moods..."
+
+# Root Genres
+root_genres = {
+  'Electronic' => ['House', 'Techno', 'Dubstep', 'Trance', 'EDM', 'Ambient'],
+  'Hip Hop' => ['Trap', 'Boom Bap', 'Lo-Fi Hip Hop', 'Conscious Rap', 'Mumble Rap'],
+  'Rock' => ['Alternative Rock', 'Indie Rock', 'Hard Rock', 'Punk Rock', 'Progressive Rock'],
+  'Pop' => ['Synth Pop', 'Indie Pop', 'K-Pop', 'Dream Pop', 'Electropop'],
+  'R&B' => ['Neo Soul', 'Contemporary R&B', 'Alternative R&B'],
+  'Jazz' => ['Smooth Jazz', 'Jazz Fusion', 'Bebop', 'Free Jazz'],
+  'Classical' => ['Baroque', 'Romantic', 'Modern Classical'],
+  'Latin' => ['Reggaeton', 'Salsa', 'Bachata', 'Latin Pop'],
+  'Country' => ['Modern Country', 'Outlaw Country', 'Country Pop'],
+  'Metal' => ['Heavy Metal', 'Death Metal', 'Black Metal', 'Metalcore']
+}
+
+root_genres.each_with_index do |(parent_name, subgenres), position|
+  parent = Genre.create!(
+    name: parent_name,
+    description: "#{parent_name} music genre",
+    position: position,
+    active: true
+  )
+  
+  subgenres.each_with_index do |subgenre_name, sub_position|
+    Genre.create!(
+      name: subgenre_name,
+      description: "#{subgenre_name} subgenre of #{parent_name}",
+      parent_genre: parent,
+      position: sub_position,
+      active: true
+    )
+  end
+end
+
+# Moods
+moods_data = [
+  { name: 'Happy', color_code: '#FFD700', icon: '😊' },
+  { name: 'Sad', color_code: '#4169E1', icon: '😢' },
+  { name: 'Energetic', color_code: '#FF4500', icon: '⚡' },
+  { name: 'Chill', color_code: '#20B2AA', icon: '😌' },
+  { name: 'Romantic', color_code: '#FF69B4', icon: '💕' },
+  { name: 'Angry', color_code: '#DC143C', icon: '😠' },
+  { name: 'Focused', color_code: '#6A5ACD', icon: '🎯' },
+  { name: 'Party', color_code: '#FF1493', icon: '🎉' },
+  { name: 'Relaxed', color_code: '#87CEEB', icon: '🌊' },
+  { name: 'Melancholic', color_code: '#708090', icon: '🌧️' }
+]
+
+moods_data.each do |mood_data|
+  Mood.create!(
+    name: mood_data[:name],
+    description: "#{mood_data[:name]} mood",
+    color_code: mood_data[:color_code],
+    icon: mood_data[:icon],
+    active: true
+  )
+end
+
+puts "✅ Created #{Genre.count} genres and #{Mood.count} moods"
+
+# ============================================================
 # USERS
 # ============================================================
 puts "👥 Creating users..."
@@ -208,6 +272,38 @@ artists.each_with_index do |artist, artist_index|
 end
 
 puts "✅ Created #{album_count} albums and #{track_count} tracks"
+
+# Assign random genres and moods to tracks
+puts "\n🎨 Assigning genres and moods to tracks..."
+all_genres = Genre.where.not(parent_genre_id: nil).to_a # Only subgenres
+all_moods = Mood.all.to_a
+
+Track.find_each do |track|
+  # Assign 1-2 genres
+  genres_to_assign = all_genres.sample(rand(1..2))
+  genres_to_assign.each_with_index do |genre, index|
+    TrackGenre.create!(track: track, genre: genre, primary: index == 0)
+  end
+  
+  # Assign 1-2 moods
+  moods_to_assign = all_moods.sample(rand(1..2))
+  moods_to_assign.each do |mood|
+    TrackMood.create!(track: track, mood: mood)
+  end
+end
+
+# Assign genres to albums
+Album.find_each do |album|
+  # Get genres from album's tracks
+  track_genres = album.tracks.joins(:track_genres).pluck('track_genres.genre_id').uniq
+  primary_genre_ids = track_genres.take(2)
+  
+  primary_genre_ids.each_with_index do |genre_id, index|
+    AlbumGenre.create!(album: album, genre_id: genre_id, primary: index == 0)
+  end
+end
+
+puts "✅ Assigned genres and moods"
 
 # ============================================================
 # STREAMS
