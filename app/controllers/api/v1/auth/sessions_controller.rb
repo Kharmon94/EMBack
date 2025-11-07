@@ -26,8 +26,13 @@ module Api
             # Get the JWT from the Authorization header
             token = request.headers['Authorization']&.split(' ')&.last
             if token
-              # Add to denylist (handled by warden-jwt_auth automatically on sign_out)
-              JwtDenylist.create!(jti: decode_jti_from_token(token), exp: Time.current + 1.day)
+              # Decode jti from token
+              jti = decode_jti_from_token(token)
+              
+              # Only add to denylist if jti was successfully decoded
+              if jti.present?
+                JwtDenylist.create!(jti: jti, exp: Time.current + 1.day)
+              end
             end
             render json: { message: 'Signed out successfully' }, status: :ok
           else
