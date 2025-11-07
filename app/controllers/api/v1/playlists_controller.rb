@@ -1,152 +1,120 @@
 module Api
   module V1
-    class PlaylistsController < BaseController
-      load_and_authorize_resource
+    class PlaylistsController < ApplicationController
+      before_action :authenticate_user!, except: [:index, :show, :discover, :community]
+      before_action :set_playlist, only: [:show, :update, :destroy, :add_track, :remove_track, 
+                                           :add_collaborator, :remove_collaborator, :follow, :unfollow,
+                                           :upload_artwork, :remove_artwork]
+      load_and_authorize_resource except: [:index, :discover, :community, :collaborative]
       
       # GET /api/v1/playlists
       def index
-        @playlists = if params[:user_id]
-                      Playlist.where(user_id: params[:user_id])
-                    else
-                      current_user.playlists
-                    end
-        
-        # Include public playlists
-        @playlists = @playlists.or(Playlist.public_playlists) if params[:include_public] == 'true'
-        
-        @playlists = @playlists.order(updated_at: :desc)
-        @paginated = paginate(@playlists)
-        
-        render json: {
-          playlists: @paginated.map { |playlist| playlist_json(playlist) },
-          meta: pagination_meta(@playlists, @paginated)
-        }
+        if current_user
+          playlists = current_user.playlists.includes(:tracks, :user, :playlist_folder)
+          render json: { playlists: playlists.map { |p| playlist_json(p) } }
+        else
+          render json: { playlists: [] }
+        end
       end
       
       # GET /api/v1/playlists/:id
       def show
-        render json: {
-          playlist: detailed_playlist_json(@playlist),
-          tracks: @playlist.tracks.includes(album: :artist).map { |track| track_json(track) }
-        }
+        authorize! :read, @playlist
+        render json: { playlist: playlist_detail_json(@playlist) }
       end
       
       # POST /api/v1/playlists
       def create
-        @playlist = current_user.playlists.build(playlist_params)
+        playlist = current_user.playlists.new(playlist_params)
         
-        if @playlist.save
-          render json: {
-            playlist: detailed_playlist_json(@playlist),
-            message: 'Playlist created successfully'
-          }, status: :created
+        if playlist.save
+          render json: { playlist: playlist_json(playlist) }, status: :created
         else
-          render json: { errors: @playlist.errors }, status: :unprocessable_entity
+          render json: { errors: playlist.errors.full_messages }, status: :unprocessable_entity
         end
       end
       
       # PATCH /api/v1/playlists/:id
       def update
         if @playlist.update(playlist_params)
-          render json: { playlist: detailed_playlist_json(@playlist) }
+          render json: { playlist: playlist_json(@playlist) }
         else
-          render json: { errors: @playlist.errors }, status: :unprocessable_entity
+          render json: { errors: @playlist.errors.full_messages }, status: :unprocessable_entity
         end
       end
       
       # DELETE /api/v1/playlists/:id
       def destroy
         @playlist.destroy
-        render json: { message: 'Playlist deleted successfully' }
+        head :no_content
       end
       
       # POST /api/v1/playlists/:id/add_track/:track_id
       def add_track
         track = Track.find(params[:track_id])
         
-        # Check if track already in playlist
-        if @playlist.tracks.include?(track)
-          return render json: { error: 'Track already in playlist' }, status: :unprocessable_entity
+        # Get the highest position
+        max_position = @playlist.playlist_tracks.maximum(:position) || -1
+        
+        playlist_track = @playlist.playlist_tracks.create(
+          track: track,
+          position: max_position + 1
+        )
+        
+        if playlist_track.persisted?
+          render json: { success: true, playlist: playlist_json(@playlist) }
+        else
+          render json: { errors: playlist_track.errors.full_messages }, status: :unprocessable_entity
         end
-        
-        @playlist.add_track(track)
-        
-        render json: {
-          message: 'Track added to playlist',
-          playlist: detailed_playlist_json(@playlist)
-        }
       end
       
       # DELETE /api/v1/playlists/:id/remove_track/:track_id
       def remove_track
         playlist_track = @playlist.playlist_tracks.find_by(track_id: params[:track_id])
         
-        unless playlist_track
-          return render json: { error: 'Track not in playlist' }, status: :not_found
+        if playlist_track
+          playlist_track.destroy
+          render json: { success: true, playlist: playlist_json(@playlist) }
+        else
+          render json: { error: 'Track not found in playlist' }, status: :not_found
         end
-        
-        playlist_track.destroy
-        
-        render json: {
-          message: 'Track removed from playlist',
-          playlist: detailed_playlist_json(@playlist)
-        }
       end
       
       # GET /api/v1/playlists/discover
       def discover
-        # Genre-based playlists
-        genre_playlists = Playlist.public_playlists
-                                 .joins(:playlist_tracks)
-                                 .group('playlists.id')
-                                 .order(followers_count: :desc)
-                                 .limit(20)
-        
-        # Curator playlists
-        curator_playlists = Playlist.public_playlists
-                                   .joins(user: :curator_profile)
-                                   .where(curator_profiles: { verified: true })
-                                   .order('curator_profiles.followers_count DESC')
-                                   .limit(10)
-        
-        render json: {
-          genre_playlists: genre_playlists.map { |p| playlist_json(p) },
-          curator_playlists: curator_playlists.map { |p| curator_playlist_json(p) }
-        }
+        # Featured playlists
+        featured = Playlist.where(is_public: true).order('RANDOM()').limit(10)
+        render json: { playlists: featured.map { |p| playlist_json(p) } }
       end
       
       # GET /api/v1/playlists/collaborative
       def collaborative
-        playlists = current_user.collaborative_playlists.order(updated_at: :desc)
+        return render json: { playlists: [] } unless current_user
         
-        render json: {
-          playlists: playlists.map { |p| collaborative_playlist_json(p) }
-        }
+        playlists = current_user.collaborative_playlists.includes(:tracks, :user)
+        render json: { playlists: playlists.map { |p| collaborative_playlist_json(p) } }
       end
       
       # GET /api/v1/playlists/community
       def community
-        playlists = Playlist.community.limit(30)
-        
-        render json: {
-          playlists: playlists.map { |p| playlist_json(p) }
-        }
+        playlists = Playlist.community.includes(:tracks, :user).limit(20)
+        render json: { playlists: playlists.map { |p| playlist_json(p) } }
       end
       
       # POST /api/v1/playlists/:id/collaborators
       def add_collaborator
-        user_to_add = User.find(params[:user_id])
+        user = User.find(params[:user_id])
         role = params[:role] || 'editor'
         
-        collaborator = @playlist.playlist_collaborators.build(user: user_to_add, role: role)
+        collaborator = @playlist.playlist_collaborators.create(
+          user: user,
+          role: role
+        )
         
-        if collaborator.save
-          render json: {
-            message: 'Collaborator added',
-            collaborator: collaborator_json(collaborator)
-          }
+        if collaborator.persisted?
+          render json: { success: true, collaborator: collaborator_json(collaborator) }
         else
-          render json: { errors: collaborator.errors }, status: :unprocessable_entity
+          render json: { errors: collaborator.errors.full_messages }, status: :unprocessable_entity
         end
       end
       
@@ -154,41 +122,72 @@ module Api
       def remove_collaborator
         collaborator = @playlist.playlist_collaborators.find_by(user_id: params[:user_id])
         
-        unless collaborator
-          return render json: { error: 'Collaborator not found' }, status: :not_found
+        if collaborator
+          collaborator.destroy
+          render json: { success: true }
+        else
+          render json: { error: 'Collaborator not found' }, status: :not_found
         end
-        
-        collaborator.destroy
-        render json: { message: 'Collaborator removed' }
       end
       
       # POST /api/v1/playlists/:id/follow
       def follow
-        follow = @playlist.playlist_follows.build(user: current_user)
+        follow = current_user.playlist_follows.create(playlist: @playlist)
         
-        if follow.save
-          render json: { message: 'Playlist followed', followers_count: @playlist.followers_count }
+        if follow.persisted?
+          render json: { success: true, followers_count: @playlist.followers.count }
         else
-          render json: { error: 'Already following' }, status: :unprocessable_entity
+          render json: { errors: follow.errors.full_messages }, status: :unprocessable_entity
         end
       end
       
       # DELETE /api/v1/playlists/:id/follow
       def unfollow
-        follow = @playlist.playlist_follows.find_by(user: current_user)
+        follow = current_user.playlist_follows.find_by(playlist: @playlist)
         
-        unless follow
-          return render json: { error: 'Not following this playlist' }, status: :not_found
+        if follow
+          follow.destroy
+          render json: { success: true, followers_count: @playlist.followers.count }
+        else
+          render json: { error: 'Not following this playlist' }, status: :not_found
+        end
+      end
+      
+      # POST /api/v1/playlists/:id/upload_artwork
+      def upload_artwork
+        if params[:artwork].blank?
+          return render json: { error: 'No artwork provided' }, status: :unprocessable_entity
         end
         
-        follow.destroy
-        render json: { message: 'Playlist unfollowed', followers_count: @playlist.followers_count }
+        # In a real app, upload to S3/IPFS and get URL
+        # For now, we'll simulate it
+        artwork_url = "https://placeholder.example.com/playlist_#{@playlist.id}.jpg"
+        
+        if @playlist.update(custom_cover_url: artwork_url)
+          render json: { custom_cover_url: artwork_url }
+        else
+          render json: { errors: @playlist.errors.full_messages }, status: :unprocessable_entity
+        end
+      end
+      
+      # DELETE /api/v1/playlists/:id/remove_artwork
+      def remove_artwork
+        if @playlist.update(custom_cover_url: nil)
+          render json: { success: true }
+        else
+          render json: { errors: @playlist.errors.full_messages }, status: :unprocessable_entity
+        end
       end
       
       private
       
+      def set_playlist
+        @playlist = Playlist.find(params[:id])
+      end
+      
       def playlist_params
-        params.require(:playlist).permit(:title, :description, :is_public, :collaborative)
+        params.require(:playlist).permit(:title, :description, :is_public, :collaborative, 
+                                         :custom_cover_url, :playlist_folder_id)
       end
       
       def playlist_json(playlist)
@@ -197,49 +196,25 @@ module Api
           title: playlist.title,
           description: playlist.description,
           is_public: playlist.is_public,
-          tracks_count: playlist.tracks.count,
-          total_duration: playlist.total_duration,
-          updated_at: playlist.updated_at
-        }
-      end
-      
-      def detailed_playlist_json(playlist)
-        playlist_json(playlist).merge(
-          created_at: playlist.created_at,
           collaborative: playlist.collaborative,
-          followers_count: playlist.followers_count,
+          custom_cover_url: playlist.custom_cover_url,
+          track_count: playlist.tracks.count,
           user: {
             id: playlist.user.id,
-            wallet_address: playlist.user.wallet_address
-          }
-        )
-      end
-      
-      def collaborative_playlist_json(playlist)
-        detailed_playlist_json(playlist).merge(
-          collaborators: playlist.playlist_collaborators.includes(:user).map { |c| collaborator_json(c) },
-          my_role: playlist.playlist_collaborators.find_by(user: current_user)&.role
-        )
-      end
-      
-      def curator_playlist_json(playlist)
-        playlist_json(playlist).merge(
-          curator: {
-            id: playlist.user.curator_profile.id,
-            display_name: playlist.user.curator_profile.display_name,
-            verified: playlist.user.curator_profile.verified
-          }
-        )
-      end
-      
-      def collaborator_json(collaborator)
-        {
-          id: collaborator.id,
-          user_id: collaborator.user.id,
-          email: collaborator.user.email,
-          role: collaborator.role,
-          added_at: collaborator.created_at
+            email: playlist.user.email
+          },
+          playlist_folder_id: playlist.playlist_folder_id,
+          created_at: playlist.created_at
         }
+      end
+      
+      def playlist_detail_json(playlist)
+        playlist_json(playlist).merge(
+          tracks: playlist.playlist_tracks.includes(:track).map { |pt| track_json(pt.track) },
+          collaborators: playlist.playlist_collaborators.map { |c| collaborator_json(c) },
+          followers_count: playlist.followers.count,
+          is_following: current_user ? current_user.playlist_follows.exists?(playlist: playlist) : false
+        )
       end
       
       def track_json(track)
@@ -247,7 +222,7 @@ module Api
           id: track.id,
           title: track.title,
           duration: track.duration,
-          track_number: track.track_number,
+          audio_url: track.audio_url,
           album: {
             id: track.album.id,
             title: track.album.title,
@@ -259,7 +234,24 @@ module Api
           }
         }
       end
+      
+      def collaborative_playlist_json(playlist)
+        playlist_json(playlist).merge(
+          role: playlist.playlist_collaborators.find_by(user: current_user)&.role
+        )
+      end
+      
+      def collaborator_json(collaborator)
+        {
+          id: collaborator.id,
+          user_id: collaborator.user_id,
+          role: collaborator.role,
+          user: {
+            id: collaborator.user.id,
+            email: collaborator.user.email
+          }
+        }
+      end
     end
   end
 end
-

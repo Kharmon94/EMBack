@@ -201,6 +201,8 @@ Rails.application.routes.draw do
           delete 'collaborators/:user_id', to: 'playlists#remove_collaborator'
           post :follow
           delete :follow, to: 'playlists#unfollow'
+          post :upload_artwork
+          delete :remove_artwork
         end
       end
       
