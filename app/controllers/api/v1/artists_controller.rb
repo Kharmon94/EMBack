@@ -32,7 +32,7 @@ module Api
       
       # GET /api/v1/artists/:id
       def show
-        @artist = Artist.includes(:user, :artist_token).find(params[:id])
+        @artist = ::Artist.includes(:user, :artist_token).find(params[:id])
         render json: {
           artist: detailed_artist_json(@artist),
           stats: artist_stats(@artist)
@@ -41,7 +41,7 @@ module Api
       
       # GET /api/v1/artists/:id/profile (Comprehensive showcase)
       def profile
-        @artist = Artist.includes(
+        @artist = ::Artist.includes(
           :user,
           :artist_token,
           :albums,
@@ -186,28 +186,28 @@ module Api
       
       # GET /api/v1/artists/:id/albums
       def albums
-        @artist = Artist.find(params[:id])
+        @artist = ::Artist.find(params[:id])
         @albums = @artist.albums.includes(:tracks).released.order(release_date: :desc)
         render json: { albums: @albums.map { |album| album_json(album) } }
       end
       
       # GET /api/v1/artists/:id/events
       def events
-        @artist = Artist.find(params[:id])
+        @artist = ::Artist.find(params[:id])
         @events = @artist.events.upcoming.order(start_time: :asc)
         render json: { events: @events.map { |event| event_json(event) } }
       end
       
       # GET /api/v1/artists/:id/livestreams
       def livestreams
-        @artist = Artist.find(params[:id])
+        @artist = ::Artist.find(params[:id])
         @livestreams = @artist.livestreams.active.order(start_time: :desc)
         render json: { livestreams: @livestreams.map { |ls| livestream_json(ls) } }
       end
       
       # GET /api/v1/artists/:id/tokens
       def tokens
-        @artist = Artist.find(params[:id])
+        @artist = ::Artist.find(params[:id])
         @token = @artist.artist_token
         render json: { token: @token ? token_json(@token) : nil }
       end
