@@ -88,6 +88,7 @@ admin = User.create!(
   wallet_address: "AdminWallet1234567890abcdefghijk",
   email: "admin@musicplatform.com",
   password: "password123",
+  password_confirmation: "password123",
   role: :admin
 )
 
@@ -105,6 +106,7 @@ artist_users = artist_wallets.map do |wallet|
     wallet_address: wallet,
     email: "artist.#{wallet[13..16]}@example.com",
     password: "password123",
+    password_confirmation: "password123",
     role: :artist
   )
 end
@@ -116,6 +118,7 @@ fan_users = fan_wallets.map do |wallet|
     wallet_address: wallet,
     email: "fan.#{wallet[10..13]}@example.com",
     password: "password123",
+    password_confirmation: "password123",
     role: :fan
   )
 end
