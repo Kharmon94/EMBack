@@ -67,16 +67,6 @@ module Api
         @album = current_artist.albums.build(album_params)
         
         if @album.save
-          # Create tracks if provided
-          if params[:tracks].present?
-            params[:tracks].each do |track_params|
-              @album.tracks.create!(track_params.permit(
-                :title, :duration, :track_number, :audio_cid,
-                :audio_url, :isrc, :price, :explicit
-              ))
-            end
-          end
-          
           # Upload cover to IPFS if file provided
           if params[:cover_file].present?
             ipfs_service = IpfsService.new
@@ -85,6 +75,34 @@ module Api
               { name: "#{@album.title} Cover", type: 'album_cover' }
             )
             @album.update!(cover_cid: upload_result[:cid], cover_url: upload_result[:url])
+          end
+
+          # Create tracks if provided
+          if params[:tracks].present?
+            ipfs_service = IpfsService.new
+            
+            params[:tracks].each_with_index do |track_data, index|
+              track_attributes = track_data.permit(
+                :title, :duration, :track_number, :audio_cid,
+                :audio_url, :isrc, :price, :explicit, :access_tier
+              ).to_h
+              
+              # Upload audio file to IPFS if provided
+              if track_data[:audio_file].present?
+                audio_file = track_data[:audio_file]
+                upload_result = ipfs_service.upload_file(
+                  audio_file.tempfile.path,
+                  { 
+                    name: "#{@album.title} - Track #{index + 1} - #{track_attributes[:title]}", 
+                    type: 'audio' 
+                  }
+                )
+                track_attributes[:audio_cid] = upload_result[:cid]
+                track_attributes[:audio_url] = upload_result[:url]
+              end
+              
+              @album.tracks.create!(track_attributes)
+            end
           end
           
           render json: {
