@@ -25,7 +25,7 @@ class Playlist < ApplicationRecord
       .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
   }
   
-  before_save :update_search_vector
+  after_save :update_search_vector, if: -> { saved_change_to_title? || saved_change_to_description? }
   
   def add_track(track, position = nil)
     position ||= playlist_tracks.maximum(:position).to_i + 1
@@ -52,9 +52,12 @@ class Playlist < ApplicationRecord
   private
   
   def update_search_vector
-    self.search_vector = Arel.sql(
+    return unless id
+    self.class.connection.execute(
+      "UPDATE playlists SET search_vector = " \
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
-      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B')"
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') " \
+      "WHERE id = #{id}"
     )
   end
 end

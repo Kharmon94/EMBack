@@ -23,7 +23,7 @@ class Album < ApplicationRecord
       .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
   }
   
-  before_save :update_search_vector
+  after_save :update_search_vector, if: -> { saved_change_to_title? || saved_change_to_description? }
   
   def total_duration
     tracks.sum(:duration)
@@ -36,11 +36,14 @@ class Album < ApplicationRecord
   private
   
   def update_search_vector
+    return unless id # Skip if not persisted
     artist_name = artist&.name || ''
-    self.search_vector = Arel.sql(
+    self.class.connection.execute(
+      "UPDATE albums SET search_vector = " \
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(title || '')}, '')), 'A') || " \
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(description || '')}, '')), 'B') || " \
-      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B')"
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(artist_name)}, '')), 'B') " \
+      "WHERE id = #{id}"
     )
   end
 end

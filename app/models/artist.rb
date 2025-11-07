@@ -32,14 +32,17 @@ class Artist < ApplicationRecord
       .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
   }
   
-  before_save :update_search_vector
+  after_save :update_search_vector
   
   private
   
   def update_search_vector
-    self.search_vector = Arel.sql(
+    # Use execute to run raw SQL instead of assigning to the column
+    self.class.connection.execute(
+      "UPDATE artists SET search_vector = " \
       "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(name || '')}, '')), 'A') || " \
-      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(bio || '')}, '')), 'B')"
+      "setweight(to_tsvector('english', coalesce(#{self.class.connection.quote(bio || '')}, '')), 'B') " \
+      "WHERE id = #{id}"
     )
   end
 end
