@@ -52,7 +52,14 @@ module Api
         def calculate_total_revenue(artist)
           # Sum up all revenue sources
           ticket_sales = artist.events.joins(:ticket_tiers).sum('ticket_tiers.price * ticket_tiers.sold')
+          
+          # Album-level purchases
           album_sales = artist.albums.joins(:purchases).sum('purchases.price_paid')
+          
+          # Individual track purchases (tracks through albums)
+          track_sales = Purchase.joins(purchasable: :album)
+                               .where(purchasable_type: 'Track', albums: { artist_id: artist.id })
+                               .sum('purchases.price_paid')
           
           # Fan passes: price * number of minted NFTs
           fan_pass_sales = artist.fan_passes.joins(:fan_pass_nfts).sum('fan_passes.price')
@@ -60,7 +67,7 @@ module Api
           # Merch: through order_items
           merch_sales = artist.merch_items.joins(:order_items).sum('order_items.price * order_items.quantity')
           
-          ticket_sales + album_sales + fan_pass_sales + merch_sales
+          ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales
         end
         
         def calculate_month_revenue(artist)
@@ -68,7 +75,15 @@ module Api
           
           # For ticket sales in the last month, count tickets created recently
           ticket_sales = artist.events.joins(ticket_tiers: :tickets).where('tickets.created_at > ?', start_date).sum('ticket_tiers.price')
+          
+          # Album-level purchases in the last month
           album_sales = artist.albums.joins(:purchases).where('purchases.created_at > ?', start_date).sum('purchases.price_paid')
+          
+          # Individual track purchases in the last month
+          track_sales = Purchase.joins(purchasable: :album)
+                               .where(purchasable_type: 'Track', albums: { artist_id: artist.id })
+                               .where('purchases.created_at > ?', start_date)
+                               .sum('purchases.price_paid')
           
           # Fan passes minted in the last month
           fan_pass_sales = artist.fan_passes.joins(:fan_pass_nfts).where('fan_pass_nfts.created_at > ?', start_date).sum('fan_passes.price')
@@ -76,7 +91,7 @@ module Api
           # Merch sold in the last month
           merch_sales = artist.merch_items.joins(:order_items).where('order_items.created_at > ?', start_date).sum('order_items.price * order_items.quantity')
           
-          ticket_sales + album_sales + fan_pass_sales + merch_sales
+          ticket_sales + album_sales + track_sales + fan_pass_sales + merch_sales
         end
         
         def recent_activity(artist)

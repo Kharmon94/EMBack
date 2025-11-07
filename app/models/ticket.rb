@@ -7,6 +7,7 @@ class Ticket < ApplicationRecord
   
   validates :nft_mint, uniqueness: true, allow_nil: true
   validates :qr_code, presence: true
+  validates :purchased_at, presence: true
   
   before_create :generate_qr_code
   

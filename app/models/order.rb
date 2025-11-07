@@ -2,7 +2,8 @@ class Order < ApplicationRecord
   belongs_to :user
   belongs_to :cart_order, optional: true
   has_many :order_items, dependent: :destroy
-  has_many :merch_items, through: :order_items
+  # Note: order_items use polymorphic 'orderable' (MerchItem, FanPass, Track, Album)
+  # Use order.order_items.map(&:orderable) to get actual items
   has_many :reviews, dependent: :nullify
   has_many :conversations, dependent: :nullify
   
