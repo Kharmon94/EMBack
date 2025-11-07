@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_07_050000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -65,6 +65,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
     t.datetime "updated_at", null: false
     t.integer "likes_count", default: 0, null: false
     t.tsvector "search_vector"
+    t.jsonb "credits", default: {}
     t.index ["artist_id"], name: "index_albums_on_artist_id"
     t.index ["likes_count"], name: "index_albums_on_likes_count"
     t.index ["search_vector"], name: "index_albums_on_search_vector", using: :gin
@@ -426,6 +427,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
     t.index ["sku"], name: "index_merch_items_on_sku", unique: true
   end
 
+  create_table "mini_genres", force: :cascade do |t|
+    t.bigint "mini_id", null: false
+    t.bigint "genre_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["genre_id"], name: "index_mini_genres_on_genre_id"
+    t.index ["mini_id", "genre_id"], name: "index_mini_genres_on_mini_id_and_genre_id", unique: true
+    t.index ["mini_id"], name: "index_mini_genres_on_mini_id"
+  end
+
   create_table "mini_moods", force: :cascade do |t|
     t.bigint "mini_id", null: false
     t.bigint "mood_id", null: false
@@ -472,9 +483,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.tsvector "search_vector"
+    t.string "hashtags", default: [], array: true
     t.index ["access_tier"], name: "index_minis_on_access_tier"
     t.index ["artist_id", "published"], name: "index_minis_on_artist_id_and_published"
     t.index ["artist_id"], name: "index_minis_on_artist_id"
+    t.index ["hashtags"], name: "index_minis_on_hashtags", using: :gin
     t.index ["likes_count"], name: "index_minis_on_likes_count"
     t.index ["published_at"], name: "index_minis_on_published_at"
     t.index ["search_vector"], name: "index_minis_on_search_vector", using: :gin
@@ -583,6 +596,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
     t.index ["user_id"], name: "index_playlist_collaborators_on_user_id"
   end
 
+  create_table "playlist_folders", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.string "color_code"
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "position"], name: "index_playlist_folders_on_user_id_and_position"
+    t.index ["user_id"], name: "index_playlist_folders_on_user_id"
+  end
+
   create_table "playlist_follows", force: :cascade do |t|
     t.bigint "playlist_id", null: false
     t.bigint "user_id", null: false
@@ -614,8 +638,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
     t.boolean "collaborative", default: false
     t.boolean "public", default: false
     t.integer "followers_count", default: 0
+    t.string "custom_cover_url"
+    t.bigint "playlist_folder_id"
+    t.index ["playlist_folder_id"], name: "index_playlists_on_playlist_folder_id"
     t.index ["search_vector"], name: "index_playlists_on_search_vector", using: :gin
     t.index ["user_id"], name: "index_playlists_on_user_id"
+  end
+
+  create_table "pre_saves", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "pre_saveable_type", null: false
+    t.bigint "pre_saveable_id", null: false
+    t.datetime "release_date"
+    t.boolean "notified", default: false
+    t.boolean "converted", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pre_saveable_type", "pre_saveable_id"], name: "index_pre_saves_on_pre_saveable"
+    t.index ["release_date", "notified"], name: "index_pre_saves_on_release_date_and_notified"
+    t.index ["user_id", "pre_saveable_type", "pre_saveable_id"], name: "index_pre_saves_unique", unique: true
+    t.index ["user_id"], name: "index_pre_saves_on_user_id"
   end
 
   create_table "product_categories", force: :cascade do |t|
@@ -880,6 +922,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
     t.integer "free_quality", default: 0, null: false
     t.integer "likes_count", default: 0, null: false
     t.tsvector "search_vector"
+    t.text "lyrics"
+    t.jsonb "credits", default: {}
     t.index ["access_tier"], name: "index_tracks_on_access_tier"
     t.index ["album_id", "access_tier"], name: "index_tracks_on_album_id_and_access_tier"
     t.index ["album_id"], name: "index_tracks_on_album_id"
@@ -972,6 +1016,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
     t.index ["genre_id"], name: "index_video_genres_on_genre_id"
     t.index ["video_id", "genre_id"], name: "index_video_genres_on_video_id_and_genre_id", unique: true
     t.index ["video_id"], name: "index_video_genres_on_video_id"
+  end
+
+  create_table "video_moods", force: :cascade do |t|
+    t.bigint "video_id", null: false
+    t.bigint "mood_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mood_id"], name: "index_video_moods_on_mood_id"
+    t.index ["video_id", "mood_id"], name: "index_video_moods_on_video_id_and_mood_id", unique: true
+    t.index ["video_id"], name: "index_video_moods_on_video_id"
   end
 
   create_table "video_views", force: :cascade do |t|
@@ -1101,6 +1155,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
   add_foreign_key "merch_item_tags", "product_tags"
   add_foreign_key "merch_items", "artists"
   add_foreign_key "merch_items", "product_categories"
+  add_foreign_key "mini_genres", "genres"
+  add_foreign_key "mini_genres", "minis"
   add_foreign_key "mini_moods", "minis"
   add_foreign_key "mini_moods", "moods"
   add_foreign_key "mini_views", "minis"
@@ -1112,11 +1168,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
   add_foreign_key "orders", "users"
   add_foreign_key "playlist_collaborators", "playlists"
   add_foreign_key "playlist_collaborators", "users"
+  add_foreign_key "playlist_folders", "users"
   add_foreign_key "playlist_follows", "playlists"
   add_foreign_key "playlist_follows", "users"
   add_foreign_key "playlist_tracks", "playlists"
   add_foreign_key "playlist_tracks", "tracks"
+  add_foreign_key "playlists", "playlist_folders"
   add_foreign_key "playlists", "users"
+  add_foreign_key "pre_saves", "users"
   add_foreign_key "product_variants", "merch_items"
   add_foreign_key "purchases", "users"
   add_foreign_key "recently_playeds", "users"
@@ -1150,6 +1209,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_040000) do
   add_foreign_key "user_genre_preferences", "users"
   add_foreign_key "video_genres", "genres"
   add_foreign_key "video_genres", "videos"
+  add_foreign_key "video_moods", "moods"
+  add_foreign_key "video_moods", "videos"
   add_foreign_key "video_views", "users"
   add_foreign_key "video_views", "videos"
   add_foreign_key "videos", "artists"
