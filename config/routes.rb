@@ -32,26 +32,22 @@ Rails.application.routes.draw do
       get 'search/all', to: 'search#all'
       
       # Recommendations & Discovery
-      namespace :recommendations do
-        get 'tracks', to: 'recommendations#tracks'
-        get 'albums', to: 'recommendations#albums'
-        get 'videos', to: 'recommendations#videos'
-        get 'minis', to: 'recommendations#minis'
-        get 'events', to: 'recommendations#events'
-        get 'livestreams', to: 'recommendations#livestreams'
-        get 'similar/:type/:id', to: 'recommendations#similar'
-        get 'related/:type/:id', to: 'recommendations#related'
-        get 'because_you_liked/:type/:id', to: 'recommendations#because_you_liked'
-      end
+      get 'recommendations/tracks', to: 'recommendations#tracks'
+      get 'recommendations/albums', to: 'recommendations#albums'
+      get 'recommendations/videos', to: 'recommendations#videos'
+      get 'recommendations/minis', to: 'recommendations#minis'
+      get 'recommendations/events', to: 'recommendations#events'
+      get 'recommendations/livestreams', to: 'recommendations#livestreams'
+      get 'recommendations/similar/:type/:id', to: 'recommendations#similar'
+      get 'recommendations/related/:type/:id', to: 'recommendations#related'
+      get 'recommendations/because_you_liked/:type/:id', to: 'recommendations#because_you_liked'
       
-      namespace :discovery do
-        get 'feed', to: 'discovery#feed'
-        get 'related/:type/:id', to: 'discovery#related'
-        get 'trending', to: 'discovery#trending'
-        get 'friends_activity', to: 'discovery#friends_activity'
-        get 'continue_watching', to: 'discovery#continue_watching'
-        get 'recently_played', to: 'discovery#recently_played'
-      end
+      get 'discovery/feed', to: 'discovery#feed'
+      get 'discovery/related/:type/:id', to: 'discovery#related'
+      get 'discovery/trending', to: 'discovery#trending'
+      get 'discovery/friends_activity', to: 'discovery#friends_activity'
+      get 'discovery/continue_watching', to: 'discovery#continue_watching'
+      get 'discovery/recently_played', to: 'discovery#recently_played'
       
       namespace :analytics do
         get 'stats', to: 'analytics#stats'
