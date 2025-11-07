@@ -393,6 +393,9 @@ module Api
         {
           tickets: calculate_ticket_revenue,
           albums: calculate_album_revenue,
+          tracks: calculate_track_revenue,
+          videos: calculate_video_revenue,
+          minis: calculate_mini_revenue,
           tokens: calculate_token_revenue,
           fan_passes: calculate_fan_pass_revenue,
           merch: calculate_merch_revenue
@@ -400,7 +403,8 @@ module Api
       end
 
       def calculate_ticket_revenue
-        ::Purchase.where(purchasable_type: 'Ticket').sum(:price_paid) || 0
+        # Tickets are tracked directly, not through purchases
+        ::TicketTier.sum('price * sold') || 0
       end
 
       def calculate_album_revenue
@@ -414,9 +418,21 @@ module Api
       def calculate_fan_pass_revenue
         ::Purchase.where(purchasable_type: 'FanPass').sum(:price_paid) || 0
       end
+      
+      def calculate_track_revenue
+        ::Purchase.where(purchasable_type: 'Track').sum(:price_paid) || 0
+      end
+      
+      def calculate_video_revenue
+        ::Purchase.where(purchasable_type: 'Video').sum(:price_paid) || 0
+      end
+      
+      def calculate_mini_revenue
+        ::Purchase.where(purchasable_type: 'Mini').sum(:price_paid) || 0
+      end
 
       def calculate_merch_revenue
-        ::Order.sum(:total_amount) || 0
+        ::Order.where(status: [:paid, :processing, :shipped, :delivered]).sum(:total_amount) || 0
       end
 
       def calculate_dev_fees

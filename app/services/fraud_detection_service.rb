@@ -106,12 +106,12 @@ class FraudDetectionService
     flags = []
     
     # Check 1: Bulk buying (scalping)
-    recent_purchases = Purchase.where(user: user)
-                               .where('created_at >= ?', 1.hour.ago)
-                               .where(purchasable_type: 'TicketTier')
-                               .count
+    # Tickets are tracked directly, not through purchases
+    recent_ticket_purchases = Ticket.where(user: user)
+                                    .where('purchased_at >= ?', 1.hour.ago)
+                                    .count
     
-    flags << 'bulk_ticket_purchase' if recent_purchases > 10
+    flags << 'bulk_ticket_purchase' if recent_ticket_purchases > 10
     
     # Check 2: Multiple failed attempts
     # TODO: Track failed purchase attempts

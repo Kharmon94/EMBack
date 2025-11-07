@@ -175,7 +175,7 @@ module Api
         purchase = Purchase.create!(
           user: current_user,
           purchasable: @video,
-          amount: @video.price,
+          price_paid: @video.price,
           transaction_signature: signature
         )
         
