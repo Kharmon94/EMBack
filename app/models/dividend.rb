@@ -23,6 +23,8 @@ class Dividend < ApplicationRecord
   scope :for_period, ->(start_date, end_date) { 
     where('period_start >= ? AND period_end <= ?', start_date, end_date) 
   }
+  scope :paid, -> { status_paid }
+  scope :pending, -> { status_pending }
   
   # Mark as paid
   def mark_as_paid!(transaction_sig)

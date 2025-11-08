@@ -3,10 +3,11 @@ module Api
     class FanPassesController < BaseController
       include WalletRequired
       
-      skip_before_action :authenticate_api_user!, only: [:index, :show], raise: false
+      skip_before_action :authenticate_api_user!, only: [:index, :show, :holders, :dividends_history], raise: false
+      before_action :set_fan_pass, only: [:show, :holders, :dividends_history, :purchase, :distribute_dividends]
       before_action :require_wallet_connection, only: [:purchase, :distribute_dividends]
-      load_and_authorize_resource except: [:index, :show]
-      skip_authorization_check only: [:index, :show]
+      load_and_authorize_resource except: [:index, :show, :holders, :dividends_history]
+      skip_authorization_check only: [:index, :show, :holders, :dividends_history]
       
       # GET /api/v1/fan_passes
       def index
@@ -268,6 +269,12 @@ module Api
             available_supply: fan_pass.available_supply
           }
         end
+      end
+      
+      private
+      
+      def set_fan_pass
+        @fan_pass = FanPass.includes(:artist, :fan_pass_nfts, :dividends).find(params[:id])
       end
     end
   end

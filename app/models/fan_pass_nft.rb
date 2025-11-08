@@ -16,6 +16,7 @@ class FanPassNft < ApplicationRecord
   
   scope :owned, -> { where.not(user_id: nil) }
   scope :claimable, -> { where(status: :unclaimed) }
+  scope :active, -> { status_active }
   
   # Check if user owns this NFT
   def owned_by?(user)
