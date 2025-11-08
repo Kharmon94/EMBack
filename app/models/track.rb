@@ -70,7 +70,7 @@ class Track < ApplicationRecord
   end
   
   def requires_nft?
-    nft_required?
+    access_tier == 'nft_required'
   end
   
   def unique_listeners
