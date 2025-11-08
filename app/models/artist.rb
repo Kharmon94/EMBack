@@ -29,23 +29,23 @@ class Artist < ApplicationRecord
   scope :search, ->(query) {
     return all if query.blank?
     
-    # Combine partial ILIKE matching with full-text search for better fuzzy results
-    sanitized = query.gsub(/[^a-zA-Z0-9\s]/, '')
+    # Sanitize and prepare query
+    sanitized = query.strip.gsub(/[^a-zA-Z0-9\s]/, '')
+    return none if sanitized.blank?
     
-    where(
-      "name ILIKE :partial OR bio ILIKE :partial OR search_vector @@ to_tsquery('english', :tsquery)",
-      partial: "%#{sanitized}%",
-      tsquery: sanitized.split.map { |word| "#{word}:*" }.join(' & ')
-    ).order(
-      Arel.sql("
-        CASE 
-          WHEN name ILIKE #{connection.quote(sanitized + '%')} THEN 1
-          WHEN name ILIKE #{connection.quote('%' + sanitized + '%')} THEN 2
-          ELSE 3
-        END,
-        ts_rank(search_vector, to_tsquery('english', #{connection.quote(sanitized.split.map { |w| "#{w}:*" }.join(' & '))})) DESC
-      ")
-    )
+    # Use simple ILIKE for partial matching (more reliable for autocomplete)
+    where("name ILIKE ? OR bio ILIKE ?", "%#{sanitized}%", "%#{sanitized}%")
+      .order(
+        Arel.sql("
+          CASE 
+            WHEN LOWER(name) = #{connection.quote(sanitized.downcase)} THEN 0
+            WHEN name ILIKE #{connection.quote(sanitized + '%')} THEN 1
+            WHEN name ILIKE #{connection.quote('%' + sanitized + '%')} THEN 2
+            ELSE 3
+          END,
+          LENGTH(name)
+        ")
+      )
   }
   
   after_save :update_search_vector
