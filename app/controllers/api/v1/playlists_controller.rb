@@ -1,15 +1,16 @@
 module Api
   module V1
-    class PlaylistsController < ApplicationController
-      before_action :authenticate_user!, except: [:index, :show, :discover, :community]
+    class PlaylistsController < BaseController
+      skip_before_action :authenticate_api_user!, only: [:index, :show, :discover, :community], raise: false
       before_action :set_playlist, only: [:show, :update, :destroy, :add_track, :remove_track, 
                                            :add_collaborator, :remove_collaborator, :follow, :unfollow,
                                            :upload_artwork, :remove_artwork]
       load_and_authorize_resource except: [:index, :discover, :community, :collaborative]
+      skip_authorization_check only: [:index, :discover, :community]
       
       # GET /api/v1/playlists
       def index
-        if current_user
+        if try(:current_user)
           playlists = current_user.playlists.includes(:tracks, :user, :playlist_folder)
           render json: { playlists: playlists.map { |p| playlist_json(p) } }
         else

@@ -1,7 +1,8 @@
 module Api
   module V1
     class RecommendationsController < BaseController
-      skip_before_action :authenticate_api_user!, only: [:tracks, :albums, :videos, :minis, :events, :livestreams, :related, :similar], raise: false
+      skip_before_action :authenticate_api_user!, only: [:tracks, :albums, :videos, :minis, :events, :livestreams, :related, :similar, :because_you_liked], raise: false
+      skip_authorization_check
       
       # GET /api/v1/recommendations/tracks
       def tracks

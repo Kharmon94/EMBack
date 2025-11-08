@@ -1,7 +1,8 @@
 module Api
   module V1
     class DiscoveryController < BaseController
-      skip_before_action :authenticate_api_user!, only: [:feed, :related, :trending], raise: false
+      skip_before_action :authenticate_api_user!, only: [:feed, :related, :trending, :friends_activity, :recently_played, :continue_watching], raise: false
+      skip_authorization_check
       
       # GET /api/v1/discovery/feed
       def feed
