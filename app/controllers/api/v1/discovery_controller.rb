@@ -46,7 +46,10 @@ module Api
       
       # GET /api/v1/discovery/friends_activity
       def friends_activity
-        return render json: { error: 'Authentication required' }, status: :unauthorized unless current_user
+        # Return empty if not authenticated (guest users)
+        unless try(:current_user)
+          return render json: { activities: [] }
+        end
         
         friend_ids = current_user.follows.where(followable_type: 'User', friendship: true).pluck(:followable_id)
         
@@ -63,7 +66,10 @@ module Api
       
       # GET /api/v1/discovery/continue_watching
       def continue_watching
-        return render json: { error: 'Authentication required' }, status: :unauthorized unless current_user
+        # Return empty if not authenticated (guest users)
+        unless try(:current_user)
+          return render json: { continue_watching: [] }
+        end
         
         # Get partially watched videos/minis
         incomplete_views = current_user.view_histories
@@ -88,7 +94,10 @@ module Api
       
       # GET /api/v1/discovery/recently_played
       def recently_played
-        return render json: { error: 'Authentication required' }, status: :unauthorized unless current_user
+        # Return empty if not authenticated (guest users)
+        unless try(:current_user)
+          return render json: { recently_played: [] }
+        end
         
         recent = current_user.recently_playeds
                             .includes(:playable)
