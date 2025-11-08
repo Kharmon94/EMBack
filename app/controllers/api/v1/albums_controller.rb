@@ -173,8 +173,8 @@ module Api
           cover_url: album.cover_url,
           price: album.price,
           release_date: album.release_date,
-          tracks_count: album.tracks.count,
-          total_duration: album.total_duration,
+          tracks_count: album.tracks.size,
+          total_duration: album.tracks.sum(:duration),
           artist: {
             id: album.artist.id,
             name: album.artist.name,
@@ -188,7 +188,7 @@ module Api
         album_json(album).merge(
           upc: album.upc,
           cover_cid: album.cover_cid,
-          total_streams: album.total_streams,
+          total_streams: album.tracks.joins(:streams).count,
           created_at: album.created_at,
           updated_at: album.updated_at
         )
