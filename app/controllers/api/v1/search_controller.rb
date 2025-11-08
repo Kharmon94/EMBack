@@ -262,7 +262,7 @@ module Api
           venue: event.venue,
           location: event.location,
           start_time: event.start_time,
-          image_url: event.cover_url,
+          image_url: event.artist&.avatar_url, # Events don't have cover_url, use artist avatar
           status: event.status
         }
       end
