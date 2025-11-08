@@ -25,11 +25,27 @@ class Artist < ApplicationRecord
   scope :verified, -> { where(verified: true) }
   scope :with_token, -> { joins(:artist_token) }
   
-  # Full-text search
+  # Full-text search with fuzzy matching
   scope :search, ->(query) {
     return all if query.blank?
-    where("search_vector @@ plainto_tsquery('english', ?)", query)
-      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+    
+    # Combine partial ILIKE matching with full-text search for better fuzzy results
+    sanitized = query.gsub(/[^a-zA-Z0-9\s]/, '')
+    
+    where(
+      "name ILIKE :partial OR bio ILIKE :partial OR search_vector @@ to_tsquery('english', :tsquery)",
+      partial: "%#{sanitized}%",
+      tsquery: sanitized.split.map { |word| "#{word}:*" }.join(' & ')
+    ).order(
+      Arel.sql("
+        CASE 
+          WHEN name ILIKE #{connection.quote(sanitized + '%')} THEN 1
+          WHEN name ILIKE #{connection.quote('%' + sanitized + '%')} THEN 2
+          ELSE 3
+        END,
+        ts_rank(search_vector, to_tsquery('english', #{connection.quote(sanitized.split.map { |w| "#{w}:*" }.join(' & '))})) DESC
+      ")
+    )
   }
   
   after_save :update_search_vector

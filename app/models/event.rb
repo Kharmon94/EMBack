@@ -16,11 +16,26 @@ class Event < ApplicationRecord
   scope :past, -> { where("end_time < ?", Time.current) }
   scope :active, -> { where(status: [:published, :ongoing]) }
   
-  # Full-text search
+  # Full-text search with fuzzy matching
   scope :search, ->(query) {
     return all if query.blank?
-    where("search_vector @@ plainto_tsquery('english', ?)", query)
-      .order(Arel.sql("ts_rank(search_vector, plainto_tsquery('english', #{connection.quote(query)})) DESC"))
+    
+    sanitized = query.gsub(/[^a-zA-Z0-9\s]/, '')
+    
+    where(
+      "title ILIKE :partial OR venue ILIKE :partial OR location ILIKE :partial OR search_vector @@ to_tsquery('english', :tsquery)",
+      partial: "%#{sanitized}%",
+      tsquery: sanitized.split.map { |word| "#{word}:*" }.join(' & ')
+    ).order(
+      Arel.sql("
+        CASE 
+          WHEN title ILIKE #{connection.quote(sanitized + '%')} THEN 1
+          WHEN title ILIKE #{connection.quote('%' + sanitized + '%')} THEN 2
+          ELSE 3
+        END,
+        ts_rank(search_vector, to_tsquery('english', #{connection.quote(sanitized.split.map { |w| "#{w}:*" }.join(' & '))})) DESC
+      ")
+    )
   }
   
   after_save :update_search_vector, if: -> { saved_change_to_title? || saved_change_to_description? }
