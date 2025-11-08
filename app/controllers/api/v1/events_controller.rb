@@ -191,6 +191,8 @@ module Api
           name: tier.name,
           description: tier.description,
           price: tier.price,
+          price_sol: tier.price, # Alias for frontend compatibility
+          price_usd: tier.price ? (tier.price * 150).round(2) : nil, # Approximate USD conversion
           quantity: tier.quantity,
           sold: tier.sold,
           available: tier.available,
