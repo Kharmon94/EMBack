@@ -22,6 +22,41 @@ class Ability
       can :manage, FanPass, artist: { user_id: user.id }
       can :manage, Airdrop, artist: { user_id: user.id }
       
+      # Shop & Product Management
+      can :manage, ProductVariant, merch_item: { artist: { user_id: user.id } }
+      can :read, Order do |order|
+        # Artists can read orders for their products
+        order.order_items.any? { |item| item.orderable.try(:artist)&.user_id == user.id }
+      end
+      can :update, Order do |order|
+        # Artists can update status/tracking for their orders
+        order.order_items.any? { |item| item.orderable.try(:artist)&.user_id == user.id }
+      end
+      can :read, OrderItem do |item|
+        item.orderable.try(:artist)&.user_id == user.id
+      end
+      can :read, CartOrder, seller_id: user.artist&.id
+      
+      # Messaging (Artists can receive and respond)
+      can :create, Conversation
+      can :read, Conversation do |conversation|
+        conversation.users.include?(user)
+      end
+      can :manage, ConversationParticipant, user_id: user.id
+      can :create, DirectMessage do |message|
+        message.conversation.users.include?(user)
+      end
+      can :read, DirectMessage do |message|
+        message.conversation.users.include?(user)
+      end
+      
+      # Analytics & Tracking
+      can :read, Stream, track: { album: { artist: { user_id: user.id } } }
+      can :read, VideoView, video: { artist: { user_id: user.id } }
+      can :read, MiniView, mini: { artist: { user_id: user.id } }
+      can :read, ListeningHistory, track: { album: { artist: { user_id: user.id } } }
+      can :read, ViewHistory, video: { artist: { user_id: user.id } }
+      
       # Artists can read everything users can
       artist_read_permissions(user)
     else
@@ -48,7 +83,11 @@ class Ability
     can :read, Purchase, user_id: user.id
     can :read, Trade, user_id: user.id
     can :read, Ticket, user_id: user.id
-    can :read, Order, user_id: user.id
+    can :manage, Order, user_id: user.id
+    can :read, OrderItem do |item|
+      item.order.user_id == user.id
+    end
+    can :manage, CartOrder, user_id: user.id
     
     # Can purchase and own fan pass NFTs
     can :create, FanPassNft
@@ -77,6 +116,8 @@ class Ability
     can :destroy, Like, user_id: user.id  # Can unlike
     can :read, Notification, user_id: user.id
     can :manage, Notification, user_id: user.id
+    can :create, Share
+    can :manage, Share, user_id: user.id
     
     # Shop features
     can :create, Review
@@ -87,6 +128,7 @@ class Ability
     can :manage, Wishlist, user_id: user.id
     can :manage, WishlistItem, wishlist: { user_id: user.id }
     can :create, RecentlyViewedItem
+    can :manage, RecentlyViewedItem, user_id: user.id
     
     # Direct Messaging
     can :create, Conversation
@@ -100,6 +142,16 @@ class Ability
     can :read, DirectMessage do |message|
       message.conversation.users.include?(user)
     end
+    
+    # Analytics & History (Own Data)
+    can :manage, ListeningHistory, user_id: user.id
+    can :manage, ViewHistory, user_id: user.id
+    can :manage, SearchHistory, user_id: user.id
+    can :manage, UserActivity, user_id: user.id
+    
+    # Pre-saves
+    can :create, PreSave
+    can :manage, PreSave, user_id: user.id
     
     # Read permissions
     artist_read_permissions(user)
@@ -125,24 +177,33 @@ class Ability
     can :read, LiquidityPool
     can :read, PlatformToken
     can :read, PlatformMetric
+    can :read, Playlist
+    can :read, Comment
+    can :read, Like
   end
   
   def guest_permissions
     # Guests can only read public content
     can :read, Artist
+    can :read, ArtistToken
     can :read, Album
     can :read, Track
     can :read, Video
     can :read, Mini
     can :read, Event
     can :read, TicketTier
+    can :read, Livestream
     can :read, MerchItem
     can :read, ProductCategory
     can :read, ProductTag
     can :read, ProductVariant
     can :read, Review
+    can :read, FanPass
     can :read, PlatformToken
     can :read, PlatformMetric
+    can :read, Playlist
+    can :read, Comment
+    can :read, Like
   end
 end
 
