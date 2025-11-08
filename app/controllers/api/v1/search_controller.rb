@@ -2,6 +2,7 @@ module Api
   module V1
     class SearchController < BaseController
       skip_before_action :authenticate_api_user!, only: [:index, :all], raise: false
+      skip_authorization_check
       
       # GET /api/v1/search?q=query&limit=10
       # Quick autocomplete search (limited results per type)
@@ -261,7 +262,7 @@ module Api
           venue: event.venue,
           location: event.location,
           start_time: event.start_time,
-          image_url: event.image_url,
+          image_url: event.cover_url,
           status: event.status
         }
       end
