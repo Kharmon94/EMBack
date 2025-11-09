@@ -1,6 +1,8 @@
 module Api
   module V1
     class LikesController < BaseController
+      skip_authorization_check
+      
       # POST /api/v1/:likeable_type/:likeable_id/like
       def create
         likeable_type = params[:likeable_type].classify

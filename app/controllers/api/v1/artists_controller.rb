@@ -59,7 +59,7 @@ module Api
             avatar_url: @artist.avatar_url,
             banner_url: @artist.banner_url,
             verified: @artist.verified,
-            genres: @artist.genres,
+            genres: @artist.genre || [],
             member_since: @artist.created_at,
             social_links: @artist.user.social_links || {}
           },
