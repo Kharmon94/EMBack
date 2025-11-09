@@ -53,6 +53,7 @@ module Api
       
       # GET /api/v1/tracks/:id
       def show
+        @track = Track.includes(:album, album: :artist).find(params[:id])
         render json: { track: detailed_track_json(@track) }
       end
       
@@ -207,16 +208,17 @@ module Api
           price: track.price,
           access_tier: track.access_tier,
           requires_nft: track.requires_nft?,
-          album: {
+          album: track.album ? {
             id: track.album.id,
             title: track.album.title,
             cover_url: track.album.cover_url
-          },
-          artist: {
+          } : nil,
+          artist: track.album&.artist ? {
             id: track.album.artist.id,
             name: track.album.artist.name,
-            avatar_url: track.album.artist.avatar_url
-          }
+            avatar_url: track.album.artist.avatar_url,
+            verified: track.album.artist.verified
+          } : nil
         }
       end
       
