@@ -143,6 +143,7 @@ Rails.application.routes.draw do
           post :log_stream
           post :purchase
           patch :update_access
+          get :is_liked
           post :like, to: 'likes#create', defaults: { likeable_type: 'Track' }
           delete :like, to: 'likes#destroy', defaults: { likeable_type: 'Track' }
           get :likes, to: 'likes#index', defaults: { likeable_type: 'Track' }

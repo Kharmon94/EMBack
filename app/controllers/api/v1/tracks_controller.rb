@@ -1,9 +1,9 @@
 module Api
   module V1
     class TracksController < BaseController
-      skip_before_action :authenticate_api_user!, only: [:index, :show, :stream, :log_stream], raise: false
-      load_and_authorize_resource except: [:log_stream, :index, :show, :stream]
-      skip_authorization_check only: [:index, :show, :stream, :log_stream]
+      skip_before_action :authenticate_api_user!, only: [:index, :show, :stream, :log_stream, :is_liked], raise: false
+      load_and_authorize_resource except: [:log_stream, :index, :show, :stream, :is_liked]
+      skip_authorization_check only: [:index, :show, :stream, :log_stream, :is_liked]
       
       # GET /api/v1/tracks
       def index
@@ -111,6 +111,18 @@ module Api
           access: access,
           message: 'Remember to log stream after 30 seconds'
         }
+      end
+      
+      # GET /api/v1/tracks/:id/is_liked
+      def is_liked
+        @track = Track.find(params[:id])
+        
+        if current_user
+          liked = Like.exists?(user: current_user, likeable: @track)
+          render json: { is_liked: liked }
+        else
+          render json: { is_liked: false }
+        end
       end
       
       # POST /api/v1/tracks/:id/log_stream
