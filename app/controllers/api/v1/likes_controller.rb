@@ -3,10 +3,10 @@ module Api
     class LikesController < BaseController
       skip_authorization_check
       
-      # POST /api/v1/:likeable_type/:likeable_id/like
+      # POST /api/v1/:likeable_type/:id/like
       def create
         likeable_type = params[:likeable_type].classify
-        likeable_id = params[:likeable_id]
+        likeable_id = params[:id]
         
         @likeable = likeable_type.constantize.find(likeable_id)
         @like = current_user.likes.find_or_initialize_by(
@@ -27,10 +27,10 @@ module Api
         render json: { error: 'Content not found' }, status: :not_found
       end
       
-      # DELETE /api/v1/:likeable_type/:likeable_id/like
+      # DELETE /api/v1/:likeable_type/:id/like
       def destroy
         likeable_type = params[:likeable_type].classify
-        likeable_id = params[:likeable_id]
+        likeable_id = params[:id]
         
         @likeable = likeable_type.constantize.find(likeable_id)
         @like = current_user.likes.find_by(likeable: @likeable)
@@ -48,10 +48,10 @@ module Api
         render json: { error: 'Content not found' }, status: :not_found
       end
       
-      # GET /api/v1/:likeable_type/:likeable_id/likes
+      # GET /api/v1/:likeable_type/:id/likes
       def index
         likeable_type = params[:likeable_type].classify
-        likeable_id = params[:likeable_id]
+        likeable_id = params[:id]
         
         @likeable = likeable_type.constantize.find(likeable_id)
         @likes = @likeable.likes.includes(:user).order(created_at: :desc).limit(100)
