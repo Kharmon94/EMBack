@@ -66,7 +66,7 @@ class Track < ApplicationRecord
   
   # Helper methods
   def publicly_accessible?
-    free? || preview_only?
+    access_tier == 'free' || access_tier == 'preview_only'
   end
   
   def requires_nft?
