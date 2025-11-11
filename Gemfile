@@ -58,7 +58,7 @@ gem "rqrcode", "~> 2.0"
 gem "jwt", "~> 2.7"
 
 # AWS SDK for storage fallback
-gem "aws-sdk-s3", "~> 1.0"
+gem "aws-sdk-s3", "~> 1.203"
 
 # Active Storage for file uploads
 gem "active_storage_validations", "~> 1.0"
