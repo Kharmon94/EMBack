@@ -61,7 +61,7 @@ gem "jwt", "~> 2.7"
 gem "aws-sdk-s3", "~> 1.0"
 
 # Active Storage for file uploads
-gem "active_storage_validations", "~> 1.0"
+gem "active_storage_validations", "~> 3.0"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
